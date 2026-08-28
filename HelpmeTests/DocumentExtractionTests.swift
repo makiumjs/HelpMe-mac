@@ -1,4 +1,6 @@
 import XCTest
+import PDFKit
+import AppKit
 @testable import Helpme
 
 /// AC2: DOCX ed EPUB si leggono davvero.
@@ -141,6 +143,58 @@ final class DocumentExtractionTests: XCTestCase {
         XCTAssertEqual(MarkupTextExtractor.textFromHtml(html), "Solo questo conta.")
     }
 
+    // MARK: - PDF
+
+    /// Il PDF è il formato che un docente importa più spesso — le verifiche
+    /// e le dispense circolano così. Era l'unico dei formati dichiarati
+    /// senza una prova su un file vero.
+    func testExtractsTextFromRealPdf() throws {
+        let url = scratch.appendingPathComponent("dispensa.pdf")
+        try makePdf(at: url, pages: [
+            "Il motore a quattro tempi compie un ciclo completo in due giri dell'albero.",
+            "Nelle macchine agricole la manutenzione dei filtri previene l'usura."
+        ])
+
+        let text = try DocumentIndexer().extractText(from: url)
+
+        XCTAssertTrue(text.contains("quattro tempi"), "Testo estratto: \(text)")
+        XCTAssertTrue(text.contains("manutenzione dei filtri"))
+    }
+
+    /// L'estrattore numera le pagine: su una dispensa lunga serve a capire
+    /// da dove viene un frammento recuperato dalla ricerca.
+    func testPdfPagesAreNumbered() throws {
+        let url = scratch.appendingPathComponent("due-pagine.pdf")
+        try makePdf(at: url, pages: ["Prima pagina.", "Seconda pagina."])
+
+        let text = try DocumentIndexer().extractText(from: url)
+        XCTAssertTrue(text.contains("[Pagina 1]"), "Testo: \(text)")
+        XCTAssertTrue(text.contains("[Pagina 2]"))
+    }
+
+    /// Una scansione non ha testo selezionabile: l'errore deve dirlo, e
+    /// nominare l'OCR, invece di un generico "impossibile leggere".
+    func testPdfWithoutSelectableTextSuggestsOcr() throws {
+        let url = scratch.appendingPathComponent("scansione.pdf")
+        try makeImageOnlyPdf(at: url)
+
+        XCTAssertThrowsError(try DocumentIndexer().extractText(from: url)) { error in
+            let message = error.localizedDescription
+            XCTAssertTrue(message.contains("scansione.pdf"), "Messaggio: \(message)")
+            XCTAssertTrue(message.lowercased().contains("ocr"),
+                          "Il docente deve sapere che serve un riconoscimento OCR: \(message)")
+        }
+    }
+
+    func testCorruptedPdfIsRejectedByName() throws {
+        let url = scratch.appendingPathComponent("rotto.pdf")
+        try Data("non è affatto un PDF".utf8).write(to: url)
+
+        XCTAssertThrowsError(try DocumentIndexer().extractText(from: url)) { error in
+            XCTAssertTrue(error.localizedDescription.contains("rotto.pdf"))
+        }
+    }
+
     // MARK: - Formati e codifiche
 
     func testUnsupportedFormatNamesTheExtensionAndTheAlternatives() throws {
@@ -173,6 +227,59 @@ final class DocumentExtractionTests: XCTestCase {
     }
 
     // MARK: - Helper
+
+    /// Genera un PDF con testo selezionabile, una pagina per stringa.
+    /// Costruito qui invece di allegare un file: un fixture binario nel
+    /// repository non si può ispezionare in una revisione.
+    private func makePdf(at url: URL, pages: [String]) throws {
+        let pdf = PDFDocument()
+
+        for (index, content) in pages.enumerated() {
+            let text = NSAttributedString(
+                string: content,
+                attributes: [.font: NSFont.systemFont(ofSize: 14)]
+            )
+            let data = NSMutableData()
+            let consumer = CGDataConsumer(data: data as CFMutableData)!
+            var box = CGRect(x: 0, y: 0, width: 595, height: 842)   // A4 in punti
+            let context = CGContext(consumer: consumer, mediaBox: &box, nil)!
+
+            context.beginPDFPage(nil)
+            let graphics = NSGraphicsContext(cgContext: context, flipped: false)
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = graphics
+            text.draw(in: CGRect(x: 50, y: 700, width: 495, height: 100))
+            NSGraphicsContext.restoreGraphicsState()
+            context.endPDFPage()
+            context.closePDF()
+
+            guard let onePage = PDFDocument(data: data as Data), let page = onePage.page(at: 0) else {
+                throw XCTSkip("Impossibile costruire la pagina PDF di prova")
+            }
+            pdf.insert(page, at: index)
+        }
+
+        guard pdf.write(to: url) else {
+            throw XCTSkip("Impossibile scrivere il PDF di prova")
+        }
+    }
+
+    /// Un PDF con una pagina disegnata ma senza testo: è ciò che produce
+    /// uno scanner, e ciò su cui l'app deve chiedere un OCR.
+    private func makeImageOnlyPdf(at url: URL) throws {
+        let data = NSMutableData()
+        let consumer = CGDataConsumer(data: data as CFMutableData)!
+        var box = CGRect(x: 0, y: 0, width: 595, height: 842)
+        let context = CGContext(consumer: consumer, mediaBox: &box, nil)!
+
+        context.beginPDFPage(nil)
+        context.setFillColor(NSColor.lightGray.cgColor)
+        context.fill(CGRect(x: 100, y: 400, width: 300, height: 200))
+        context.endPDFPage()
+        context.closePDF()
+
+        try (data as Data).write(to: url)
+    }
 
     /// Costruisce un EPUB minimo ma conforme: container, OPF con manifest e
     /// spine, e due capitoli il cui ordine alfabetico è opposto allo spine.
