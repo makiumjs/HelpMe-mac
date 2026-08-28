@@ -14,6 +14,7 @@ struct AdminConfigurationSection: View {
     @State private var passwordField: String = ""
     @State private var confirmField: String = ""
     @State private var newKeyField: String = ""
+    @State private var licenseField: String = ""
     @State private var errorMessage: String?
 
     private var lock: AdminLock { appViewModel.adminLock }
@@ -23,6 +24,8 @@ struct AdminConfigurationSection: View {
             Label("Configurazione IA", systemImage: "lock.shield.fill")
                 .font(.caption)
                 .bold()
+
+            licenseStatus
 
             if !lock.isPasswordSet {
                 firstRunSetup
@@ -35,6 +38,53 @@ struct AdminConfigurationSection: View {
         .onDisappear {
             // Il pannello si è chiuso: lo sblocco non deve sopravvivergli.
             lock.lock()
+        }
+    }
+
+    // MARK: - Licenza
+
+    /// Lo stato si legge senza sbloccare: un docente che si trova la
+    /// generazione ferma deve poter capire perché, e poterlo riferire, senza
+    /// avere la password di chi ha installato l'app.
+    private var licenseStatus: some View {
+        Label {
+            Text(appViewModel.licenseState.summary)
+                .font(.caption2)
+                .foregroundStyle(appViewModel.licenseState.isHealthy ? .secondary : Color.red)
+        } icon: {
+            Image(systemName: appViewModel.licenseState.isHealthy ? "checkmark.seal" : "exclamationmark.triangle.fill")
+                .font(.caption2)
+                .foregroundStyle(appViewModel.licenseState.isHealthy ? .secondary : Color.red)
+        }
+        .accessibilityLabel("Stato licenza: \(appViewModel.licenseState.summary)")
+    }
+
+    /// Inserirla resta dietro il lucchetto: la licenza la mette chi installa.
+    private var licenseEntry: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Divider()
+
+            Text("Codice licenza")
+                .font(.caption2)
+                .bold()
+
+            TextField("Incolla qui il codice ricevuto", text: $licenseField, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...4)
+                .font(.system(.caption2, design: .monospaced))
+
+            Button("Attiva licenza") {
+                let state = appViewModel.activate(licenseToken: licenseField)
+                switch state {
+                case .valid:
+                    licenseField = ""
+                    errorMessage = nil
+                default:
+                    errorMessage = state.summary
+                }
+            }
+            .buttonStyle(.bordered)
+            .disabled(licenseField.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
 
@@ -169,6 +219,8 @@ struct AdminConfigurationSection: View {
                 }
                 .buttonStyle(.bordered)
             }
+
+            licenseEntry
 
             if let errorMessage {
                 Text(errorMessage)

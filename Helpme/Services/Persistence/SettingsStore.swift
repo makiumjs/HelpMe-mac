@@ -10,6 +10,7 @@ public enum SettingsStore {
     private enum Key {
         static let accessibility = "it.lemmly.helpme.accessibility-settings"
         static let lastFormat = "it.lemmly.helpme.last-didactic-format"
+        static let licenseToken = "it.lemmly.helpme.license-token"
     }
 
     private static let defaults = UserDefaults.standard
@@ -41,5 +42,22 @@ public enum SettingsStore {
 
     public static func save(lastFormat: DidacticFormat) {
         defaults.set(lastFormat.rawValue, forKey: Key.lastFormat)
+    }
+
+    // MARK: - Licenza
+
+    /// Il codice licenza sta qui e non nel portachiavi: non è un segreto, è
+    /// un foglietto firmato. Chi lo copia non ci guadagna niente, perché
+    /// senza la chiave privata dell'emittente non lo può cambiare.
+    public static func loadLicenseToken() -> String? {
+        defaults.string(forKey: Key.licenseToken)
+    }
+
+    public static func save(licenseToken: String?) {
+        guard let licenseToken, !licenseToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            defaults.removeObject(forKey: Key.licenseToken)
+            return
+        }
+        defaults.set(licenseToken.trimmingCharacters(in: .whitespacesAndNewlines), forKey: Key.licenseToken)
     }
 }

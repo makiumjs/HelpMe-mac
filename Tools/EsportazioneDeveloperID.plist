@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Distribuzione diretta, fuori dal Mac App Store: l'app si consegna
+	     alla scuola come file, non passando da un negozio. -->
+	<key>method</key>
+	<string>developer-id</string>
+
+	<key>teamID</key>
+	<string>775T7J89BJ</string>
+
+	<key>signingStyle</key>
+	<string>automatic</string>
+
+	<!-- La notarizzazione la fa lo script con notarytool, in un passaggio
+	     separato e visibile: quando Apple rifiuta un pacchetto si vuole
+	     leggere il motivo, non trovarsi un export fallito senza spiegazione. -->
+	<key>destination</key>
+	<string>export</string>
+</dict>
+</plist>

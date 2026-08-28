@@ -5,7 +5,7 @@ Trasforma un testo curricolare nel materiale didattico personalizzato che
 serve a un alunno con DSA o ADHD, secondo il D.I. 182/2020.
 
 Progetto Xcode (`Helpme.xcodeproj`), SwiftUI, macOS 14+ / iPadOS 17+.
-**238 test.**
+**254 test.**
 
 ## Cosa fa
 
@@ -42,6 +42,13 @@ doverla inserire: il pannello è protetto da una password amministratore
 (PBKDF2, nessun segreto nel sorgente). Protegge dalle modifiche accidentali,
 non da chi è amministratore della macchina — non è spacciato per di più.
 
+**Una licenza scaduta ferma la generazione, mai la lettura.** Il materiale
+già prodotto è dello studente che lo sta usando: nessuna questione
+amministrativa deve fargli trovare lo schermo bloccato a metà di una scheda.
+Chi deve rinnovare è la scuola, e la scuola lo dice al docente, non all'alunno.
+`LicenseGate.canRead` restituisce sempre vero, ed è una funzione e non una
+costante sottintesa proprio perché un test possa presidiarla.
+
 ## Compilare
 
 Da Xcode, oppure da VS Code con i task già configurati (⇧⌘B):
@@ -59,6 +66,30 @@ Usa il modello integrato nel Mac (Apple Intelligence) quando c'è — nessuna
 chiave, nessun dato fuori — e ricade su Google Gemini altrimenti. La scelta
 è automatica per formato: i documenti lunghi e strutturati vanno al cloud,
 il resto sta bene al modello locale. Il docente può forzarla.
+
+## Distribuzione e licenze
+
+```bash
+Tools/distribuisci.sh --controlla
+```
+
+Dice cosa manca per poter consegnare l'app. Oggi mancano il certificato
+Developer ID e le credenziali di notarizzazione: entrambi richiedono
+l'iscrizione all'Apple Developer Program. Senza, l'app resta firmata "Apple
+Development" e si apre solo sui Mac registrati nell'account di chi la
+compila — sul portatile di un collega macOS non la avvia affatto.
+
+Le licenze sono foglietti firmati Ed25519 e si verificano **senza rete**: su
+una rete scolastica un controllo online sarebbe un punto di rottura in più, e
+contraddirebbe la promessa che l'app non parla con nessuno se non glielo si
+chiede. `Tools/licenza.swift` genera la coppia di chiavi dell'emittente ed
+emette le licenze; la chiave privata non sta in questo repository e non deve
+starci mai. Finché `LicenseVerifier.issuerPublicKey` è vuota, l'app non
+applica nessuna licenza: meglio una copia di sviluppo che funziona di una che
+si blocca da sola.
+
+Non c'è revoca. Una licenza emessa vale fino alla sua scadenza, perché una
+verifica offline non può sapere che è stata ritirata.
 
 ## Controparte Windows
 

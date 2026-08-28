@@ -107,13 +107,46 @@ public final class AppViewModel {
         return selector.recommended(for: selectedFormat)
     }
 
+    // MARK: - Licenza
+
+    public internal(set) var licenseState: LicenseState = LicenseVerifier.verify(
+        token: SettingsStore.loadLicenseToken() ?? ""
+    )
+
+    /// Rilegge la licenza dal disco e la rivaluta rispetto a adesso.
+    ///
+    /// Serve perché lo stato è calcolato all'avvio: un'app lasciata aperta
+    /// sulla cattedra oltre la mezzanotte dell'ultimo giorno continuerebbe a
+    /// credersi valida. Va chiamata quando l'app torna in primo piano.
+    public func refreshLicenseState() {
+        licenseState = LicenseVerifier.verify(token: SettingsStore.loadLicenseToken() ?? "")
+    }
+
+    /// Registra un codice licenza. Restituisce lo stato risultante, così chi
+    /// lo incolla vede subito se è andato a buon fine o cos'è che non va.
+    @discardableResult
+    public func activate(licenseToken: String) -> LicenseState {
+        let state = LicenseVerifier.verify(token: licenseToken)
+        // Un codice che non regge la verifica non si salva: meglio restare
+        // com'eravamo che sostituire una licenza buona con una storta.
+        if case .valid = state { SettingsStore.save(licenseToken: licenseToken) }
+        licenseState = state
+        return state
+    }
+
     /// Riga di spiegazione da mostrare accanto al pulsante di generazione.
+    ///
+    /// La licenza viene prima: se blocca lei, dire al docente quale motore
+    /// useremmo è un'informazione che non gli serve a niente.
     public var engineRationale: String? {
+        if let licenseProblem = LicenseGate.explanation(licenseState) { return licenseProblem }
         guard let engine = activeEngine else { return engineSelector.blockingMessage }
         return engineSelector.rationale(for: selectedFormat, engine: engine)
     }
 
-    public var canGenerate: Bool { activeEngine != nil }
+    public var canGenerate: Bool {
+        activeEngine != nil && LicenseGate.canGenerate(licenseState)
+    }
 
     // MARK: - Editor
 
@@ -384,6 +417,11 @@ public final class AppViewModel {
         }
         guard let student = selectedStudent else {
             errorMessage = "Seleziona prima una scheda alunno."
+            return
+        }
+
+        guard LicenseGate.canGenerate(licenseState) else {
+            errorMessage = LicenseGate.explanation(licenseState)
             return
         }
 
