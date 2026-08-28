@@ -1,0 +1,58 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Compila (macOS)",
+            "type": "shell",
+            "command": "xcodebuild -project Helpme.xcodeproj -scheme Helpme -destination 'platform=macOS' build",
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": {
+                "owner": "swift",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1, "line": 2, "column": 3, "severity": 4, "message": 5
+                }
+            },
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "Compila (iPad)",
+            "type": "shell",
+            "command": "xcodebuild -project Helpme.xcodeproj -scheme Helpme -destination 'platform=iOS Simulator,name=iPad Pro 11-inch (M5)' build",
+            "group": "build",
+            "problemMatcher": {
+                "owner": "swift",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1, "line": 2, "column": 3, "severity": 4, "message": 5
+                }
+            },
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "Test",
+            "type": "shell",
+            "command": "xcodebuild -project Helpme.xcodeproj -scheme Helpme -destination 'platform=macOS' test",
+            "group": { "kind": "test", "isDefault": true },
+            "problemMatcher": {
+                "owner": "swift",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):\\s+(error):\\s+(.*)$",
+                    "file": 1, "line": 2, "severity": 3, "message": 4
+                }
+            },
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "Avvia l'app",
+            "type": "shell",
+            "command": "xcodebuild -project Helpme.xcodeproj -scheme Helpme -destination 'platform=macOS' build -showBuildSettings 2>/dev/null | awk -F' = ' '/ BUILT_PRODUCTS_DIR/ {d=$2} / FULL_PRODUCT_NAME/ {n=$2} END {print d\"/\"n}' | xargs open",
+            "dependsOn": "Compila (macOS)",
+            "problemMatcher": [],
+            "presentation": { "reveal": "silent", "panel": "dedicated" }
+        }
+    ]
+}
