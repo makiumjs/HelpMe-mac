@@ -79,7 +79,7 @@ l'iscrizione all'Apple Developer Program. Senza, l'app resta firmata "Apple
 Development" e si apre solo sui Mac registrati nell'account di chi la
 compila — sul portatile di un collega macOS non la avvia affatto.
 
-Le licenze sono foglietti firmati Ed25519 e si verificano **senza rete**: su
+Le licenze sono foglietti firmati ECDSA P-256 e si verificano **senza rete**: su
 una rete scolastica un controllo online sarebbe un punto di rottura in più, e
 contraddirebbe la promessa che l'app non parla con nessuno se non glielo si
 chiede. `Tools/licenza.swift` genera la coppia di chiavi dell'emittente ed
@@ -87,6 +87,12 @@ emette le licenze; la chiave privata non sta in questo repository e non deve
 starci mai. Finché `LicenseVerifier.issuerPublicKey` è vuota, l'app non
 applica nessuna licenza: meglio una copia di sviluppo che funziona di una che
 si blocca da sola.
+
+La curva è P-256 e non Ed25519 perché la stessa licenza deve valere sul Mac
+e sul PC di una scuola che ne compra una: .NET 8, su cui gira la controparte
+Windows, non espone Ed25519, e implementarlo là vorrebbe dire aggiungere una
+libreria di crittografia di terze parti. P-256 è di prima parte su entrambi,
+e l'interoperabilità è stata verificata firmando qui e verificando in .NET.
 
 Non c'è revoca. Una licenza emessa vale fino alla sua scadenza, perché una
 verifica offline non può sapere che è stata ritirata.

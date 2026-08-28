@@ -8,7 +8,7 @@ import SwiftData
 /// chiavi usa-e-getta e provano a falsificarle nei modi ovvi.
 final class LicenseTests: XCTestCase {
 
-    private let issuer = Curve25519.Signing.PrivateKey()
+    private let issuer = P256.Signing.PrivateKey()
 
     private var publicKey: String { issuer.publicKey.rawRepresentation.base64EncodedString() }
 
@@ -16,13 +16,13 @@ final class LicenseTests: XCTestCase {
     private func makeToken(
         school: String = "I.I.S. Antonio Della Lucia",
         expiresOn: Date,
-        signedBy signer: Curve25519.Signing.PrivateKey? = nil
+        signedBy signer: P256.Signing.PrivateKey? = nil
     ) throws -> String {
         let license = License(school: school, issuedOn: Date(), expiresOn: expiresOn)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         let payload = try encoder.encode(license)
-        let signature = try (signer ?? issuer).signature(for: payload)
+        let signature = try (signer ?? issuer).signature(for: payload).rawRepresentation
         return "\(payload.base64URLEncodedString).\(signature.base64URLEncodedString)"
     }
 
@@ -112,7 +112,7 @@ final class LicenseTests: XCTestCase {
     // MARK: - Tentativi di imbroglio
 
     func testALicenseSignedBySomeoneElseIsRejected() throws {
-        let impostor = Curve25519.Signing.PrivateKey()
+        let impostor = P256.Signing.PrivateKey()
         let token = try makeToken(expiresOn: day(30), signedBy: impostor)
 
         let state = LicenseVerifier.verify(token: token, publicKey: publicKey)
@@ -174,9 +174,13 @@ final class LicenseTests: XCTestCase {
     /// data o l'ordine delle chiavi in uno dei due posti soltanto, tutte le
     /// licenze già vendute smettono di funzionare — e senza questo test lo si
     /// scoprirebbe da una telefonata della scuola.
+    ///
+    /// Questo stesso codice è stato verificato anche da .NET 8 (ECDsa P-256,
+    /// `IeeeP1363FixedFieldConcatenation`): la controparte Windows deve
+    /// accettare le licenze emesse qui, perché la scuola ne compra una sola.
     func testALicenseIssuedByTheRealToolIsAccepted() throws {
-        let issuedKey = "E/efhdhgA/JA8oFK2mHnisp/X5gln22+gDzRsE8MUdM="
-        let issuedToken = "eyJlbWVzc2EiOiIyMDI2LTA4LTI4VDIyOjE5OjQ3WiIsInNjYWRlIjoiMjA5OS0xMi0zMVQyMjo1OTo1OVoiLCJzY3VvbGEiOiJJLkkuUy4gQW50b25pbyBEZWxsYSBMdWNpYSJ9.Jhf8AMEHDIChFws9YT4OrQHwTUe2eLIK-OL-9D9mt8GS2NRmAFLyDbhVLwYHDI9NGIT26mpBpxSeWUxylBwABQ"
+        let issuedKey = "yi/Bm6rQnnlBIhYaZOj2g0e3Fc8TnDTkR5b4U+u6Z8F9hTaHBc2HycILCvlEYu0GQBtJHNfN0VgsqPPfvu7jEQ=="
+        let issuedToken = "eyJlbWVzc2EiOiIyMDI2LTA4LTI4VDIyOjU0OjAzWiIsInNjYWRlIjoiMjA5OS0xMi0zMVQyMjo1OTo1OVoiLCJzY3VvbGEiOiJJLkkuUy4gQW50b25pbyBEZWxsYSBMdWNpYSJ9.V1kmUL-FYWKVyXcnHg1yG20UTNSqAQ1Vt9-rGXdkSm7VtW0FEPgXUCPV5n3Y9X2b9jV2mLfycPHISzpuQPQ3hQ"
 
         let state = LicenseVerifier.verify(token: issuedToken, publicKey: issuedKey)
 

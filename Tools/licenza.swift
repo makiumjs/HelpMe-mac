@@ -12,6 +12,10 @@ import CryptoKit
 //   swift Tools/licenza.swift emetti ~/HelpMe-chiave-privata.key "I.I.S. Antonio Della Lucia" 2027-08-31
 //   swift Tools/licenza.swift leggi <codice-licenza>
 //
+// La firma e' ECDSA P-256 con SHA-256, e la chiave pubblica e' la forma
+// grezza X||Y di 64 byte: e' cio' che sia CryptoKit sia .NET sanno leggere
+// senza librerie aggiuntive, cosi' la stessa licenza vale su Mac e su PC.
+//
 // La chiave privata non va nel repository, non va in un backup condiviso e
 // non va inviata per email. Chi ce l'ha puo' emettere licenze a nome tuo, e
 // non c'e' modo di revocarle: l'app verifica senza rete, quindi non puo'
@@ -72,7 +76,7 @@ case "genera-chiavi":
         """)
     }
 
-    let privata = Curve25519.Signing.PrivateKey()
+    let privata = P256.Signing.PrivateKey()
     let dati = Data(privata.rawRepresentation.base64EncodedString().utf8)
     // Leggibile solo dall'utente: e' l'unica copia che esiste.
     guard FileManager.default.createFile(
@@ -117,7 +121,7 @@ case "emetti":
 
     guard let testo = try? String(contentsOfFile: percorso, encoding: .utf8),
           let grezza = Data(base64Encoded: testo.trimmingCharacters(in: .whitespacesAndNewlines)),
-          let privata = try? Curve25519.Signing.PrivateKey(rawRepresentation: grezza)
+          let privata = try? P256.Signing.PrivateKey(rawRepresentation: grezza)
     else { esci("Non riesco a leggere una chiave privata da \(percorso)") }
 
     let payload: [String: String] = [
@@ -126,7 +130,7 @@ case "emetti":
         "scade": ISO8601DateFormatter().string(from: scadenza)
     ]
     guard let dati = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys]),
-          let firma = try? privata.signature(for: dati)
+          let firma = try? privata.signature(for: dati).rawRepresentation
     else { esci("Firma non riuscita.") }
 
     print("""

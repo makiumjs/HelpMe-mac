@@ -79,7 +79,14 @@ public enum LicenseState: Equatable, Sendable {
 /// una firma, non a produrla.
 nonisolated public enum LicenseVerifier {
 
-    /// Chiave pubblica Ed25519 dell'emittente, in base64.
+    /// Chiave pubblica ECDSA P-256 dell'emittente, in base64 (64 byte: X||Y).
+    ///
+    /// P-256 e non Ed25519 per una ragione sola, ma vincolante: la stessa
+    /// licenza deve valere sul Mac e sul PC di una scuola che ne compra una,
+    /// e .NET 8 — su cui gira la controparte Windows — non espone Ed25519.
+    /// Implementarlo là vorrebbe dire aggiungere una libreria di crittografia
+    /// di terze parti a un progetto che ne ha già rifiutata una per sospetto
+    /// hijacking del pacchetto. P-256 è di prima parte su entrambi.
     ///
     /// Vuota finché non si genera la coppia con `Tools/licenza.swift`. Finché
     /// è vuota l'app non applica nessuna licenza: si preferisce una copia di
@@ -108,10 +115,17 @@ nonisolated public enum LicenseVerifier {
         else { return .invalid(reason: "Il codice licenza non è nel formato atteso.") }
 
         guard let keyData = Data(base64Encoded: publicKey),
-              let key = try? Curve25519.Signing.PublicKey(rawRepresentation: keyData)
+              let key = try? P256.Signing.PublicKey(rawRepresentation: keyData)
         else { return .invalid(reason: "Questa copia dell'app non ha una chiave di verifica valida.") }
 
-        guard key.isValidSignature(signature, for: payload) else {
+        // Firma grezza r||s di 64 byte: è la forma che .NET produce come
+        // IeeeP1363FixedFieldConcatenation, così le due implementazioni si
+        // leggono a vicenda senza conversioni.
+        guard let ecdsaSignature = try? P256.Signing.ECDSASignature(rawRepresentation: signature) else {
+            return .invalid(reason: "La firma della licenza non è nel formato atteso.")
+        }
+
+        guard key.isValidSignature(ecdsaSignature, for: payload) else {
             return .invalid(reason: "La firma non corrisponde: la licenza è stata modificata, oppure non è stata emessa per questa versione dell'app.")
         }
 
