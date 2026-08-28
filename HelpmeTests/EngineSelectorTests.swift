@@ -61,4 +61,38 @@ final class EngineSelectorTests: XCTestCase {
         }
         XCTAssertNil(SystemModelAvailability.Status.available.explanation)
     }
+
+    // MARK: - Il ripiego rischioso va detto
+
+    /// Misurato il 28/8/2026: sulla verifica equipollente il modello
+    /// integrato risponde alle domande invece di lasciarle aperte e sbaglia
+    /// i calcoli di un ordine di grandezza. Se non c'e alternativa lo si usa
+    /// comunque — un attrezzo storto e meglio di nessun attrezzo — ma il
+    /// docente deve saperlo prima di consegnare il foglio.
+    func testFallbackToLocalModelOnDemandingFormatIsWarnedAbout() throws {
+        let selector = EngineSelector(hasApiKey: false, systemStatus: .available)
+        let engine = try XCTUnwrap(selector.recommended(for: .equipollenteExam))
+        XCTAssertEqual(engine, .systemModel, "senza chiave resta solo il modello locale")
+
+        let message = selector.rationale(for: .equipollenteExam, engine: engine)
+        XCTAssertTrue(message.lowercased().contains("attenzione"), "Messaggio: \(message)")
+        XCTAssertTrue(message.lowercased().contains("rileggi"),
+                      "Il docente deve sapere che va riletto: \(message)")
+    }
+
+    /// Sui formati che il modello locale regge il messaggio non deve
+    /// allarmare: un avviso ovunque e un avviso che nessuno legge piu.
+    func testEasyFormatsOnLocalModelAreNotAlarming() {
+        let selector = EngineSelector(hasApiKey: false, systemStatus: .available)
+        let message = selector.rationale(for: .clearExplanation, engine: .systemModel)
+        XCTAssertFalse(message.lowercased().contains("attenzione"), "Messaggio: \(message)")
+    }
+
+    func testFormatsThatNeedCloudAreExactlyTheMeasuredOnes() {
+        XCTAssertTrue(DidacticFormat.equipollenteExam.needsCloudQuality)
+        XCTAssertTrue(DidacticFormat.interactiveQuiz.needsCloudQuality)
+        for format in [DidacticFormat.clearExplanation, .glossary, .conceptMap, .deskCheatSheet, .pdpSummary] {
+            XCTAssertFalse(format.needsCloudQuality, "\(format) non dovrebbe pretendere il cloud")
+        }
+    }
 }

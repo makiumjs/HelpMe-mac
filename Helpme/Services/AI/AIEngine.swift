@@ -65,15 +65,7 @@ public struct EngineSelector {
     public func recommended(for format: DidacticFormat) -> AIEngine? {
         guard !usableEngines.isEmpty else { return nil }
 
-        let wantsCloud: Bool
-        switch format {
-        case .equipollenteExam, .interactiveQuiz:
-            wantsCloud = true
-        case .clearExplanation, .glossary, .conceptMap, .deskCheatSheet, .pdpSummary:
-            wantsCloud = false
-        }
-
-        if wantsCloud, usableEngines.contains(.gemini) { return .gemini }
+        if format.needsCloudQuality, usableEngines.contains(.gemini) { return .gemini }
         if usableEngines.contains(.systemModel) { return .systemModel }
         return usableEngines.first
     }
@@ -82,6 +74,14 @@ public struct EngineSelector {
     public func rationale(for format: DidacticFormat, engine: AIEngine) -> String {
         switch engine {
         case .systemModel:
+            // Il ripiego sul modello locale per un formato che non regge non
+            // va nascosto dietro una frase rassicurante: qui il docente sta
+            // per ricevere un documento che va riletto riga per riga.
+            if format.needsCloudQuality {
+                return "Attenzione: senza API key questo formato lo genera il modello del Mac, "
+                     + "che tende a rispondere alle domande invece di lasciarle aperte e sbaglia i calcoli. "
+                     + "Rileggi tutto prima di consegnare."
+            }
             return usableEngines.contains(.gemini)
                 ? "\(format.title): il modello del Mac basta, e i dati non escono da qui."
                 : "Nessuna API key configurata: si usa il modello integrato nel Mac."

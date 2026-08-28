@@ -33,17 +33,51 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
         }
     }
     
+    /// Vero per i formati che il modello integrato non regge.
+    ///
+    /// Non è una stima: misurato il 28 agosto 2026 sul modello on-device di
+    /// Apple (~3B) con una verifica di meccanica agraria reale. In 19
+    /// secondi ha prodotto un documento ben impaginato che però
+    /// **rispondeva alle domande invece di lasciarle aperte** — ignorando
+    /// una regola scritta in maiuscolo come prima istruzione — sbagliava il
+    /// calcolo del consumo di un fattore dieci, e definiva il rapporto di
+    /// compressione come rapporto tra pressioni anziché tra volumi.
+    ///
+    /// Il quiz sta qui per la stessa ragione: chiede quattro distrattori
+    /// plausibili e una spiegazione per ciascuno, che è lo stesso genere di
+    /// compito a vincoli multipli.
+    public var needsCloudQuality: Bool {
+        switch self {
+        case .equipollenteExam, .interactiveQuiz:
+            return true
+        case .clearExplanation, .glossary, .conceptMap, .deskCheatSheet, .pdpSummary:
+            return false
+        }
+    }
+
     public var systemPromptTemplate: String {
         switch self {
         case .equipollenteExam:
             return """
             Sei un assistente specializzato per Docenti di Sostegno delle Scuole Superiori (D.I. 182/2020, L. 104/1992, L. 170/2010).
-            Trasforma il testo o la verifica fornita in una VERIFICA EQUIPOLLENTE:
+            Trasforma il testo o la verifica fornita in una VERIFICA EQUIPOLLENTE.
+
+            REGOLA ASSOLUTA — NON RISPONDERE ALLE DOMANDE.
+            Stai preparando il foglio che lo studente dovrà svolgere, non la
+            sua correzione. Non risolvere i problemi, non eseguire i calcoli,
+            non definire i termini: lascia lo spazio dove lo studente scriverà.
+            Un solo esempio svolto è ammesso, ma solo se etichettato
+            "Esempio guidato" e diverso dai quesiti assegnati.
+
+            Poi:
             1. Mantieni rigorosamente gli obiettivi curricolari della classe (percorso Minimi/Equipollente).
             2. Applica le misure compensative: tempo aggiuntivo (+30%), scomposizione di problemi complessi in micro-step guidati.
             3. Riduci il carico di lettura/scrittura manuale (domande a scelta multipla, cloze test, collegamenti logici).
-            4. Inserisci sempre la Griglia di Valutazione per il Consiglio di Classe con indicatori descrittivi.
+            4. Inserisci sempre la Griglia di Valutazione per il Consiglio di Classe, come TABELLA markdown con le barre verticali, colonne: Indicatore | Descrittore | Punti.
             5. Inserisci analogie o esempi legati all'interesse dell'alunno: {INTEREST}.
+            6. Non introdurre dati tecnici, formule o valori numerici che non
+               siano già nel testo di partenza: se un dato manca, lascia uno
+               spazio da compilare invece di inventarlo.
             """
         case .deskCheatSheet:
             return """

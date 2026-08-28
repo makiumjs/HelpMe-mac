@@ -90,8 +90,14 @@ public final class AppViewModel {
     /// in base a cosa è disponibile e al formato richiesto.
     public var engineOverride: AIEngine? = nil
 
+    /// Disponibilità del modello integrato. Si legge dal sistema all'avvio;
+    /// resta scrivibile perché il caso "nessun motore" — Mac senza Apple
+    /// Intelligence e senza chiave — è un ramo che l'app deve gestire bene e
+    /// che altrimenti si potrebbe provare solo su un Mac vecchio.
+    public var systemModelStatus: SystemModelAvailability.Status = SystemModelAvailability.status
+
     public var engineSelector: EngineSelector {
-        EngineSelector(hasApiKey: hasGeminiApiKey)
+        EngineSelector(hasApiKey: hasGeminiApiKey, systemStatus: systemModelStatus)
     }
 
     /// Il motore che verrà effettivamente usato.
@@ -416,10 +422,30 @@ public final class AppViewModel {
             // Il testo definitivo sostituisce quello accumulato in streaming.
             generatedContent = StudentPseudonymizer.restoreIdentity(in: result, name: studentName)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = failureMessage(for: error)
         }
 
         isGenerating = false
+    }
+
+    /// Traduce l'errore in una frase su cui il docente possa agire davvero.
+    ///
+    /// Il caso che conta è il contesto esaurito a documento già cominciato:
+    /// lì sappiamo che a sforare non è stato il testo di partenza ma la
+    /// lunghezza di quello che il modello stava scrivendo, e possiamo dirlo
+    /// invece di far accorciare una lezione che non c'entra.
+    func failureMessage(for error: Error) -> String {
+        guard let modelError = error as? SystemModelError,
+              modelError == .contextTooLong,
+              !generatedContent.isEmpty
+        else { return error.localizedDescription }
+
+        return """
+        Il modello integrato nel Mac ha esaurito lo spazio mentre scriveva: \
+        qui sotto c'è solo la parte iniziale, non consegnarla così com'è. \
+        "\(selectedFormat.title)" è un formato lungo e non ci sta. \
+        Con una API key di Google Gemini nelle impostazioni arriva in fondo.
+        """
     }
 
     /// Assembla il prompt. I dati dell'alunno passano dal pseudonimizzatore:

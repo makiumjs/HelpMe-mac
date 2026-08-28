@@ -103,7 +103,12 @@ public enum SystemModelError: LocalizedError, Equatable {
         case .modelDownloading:
             return "Il modello integrato si sta ancora scaricando. Riprova tra qualche minuto."
         case .contextTooLong:
-            return "Il testo è troppo lungo per il modello integrato. Dividilo in parti più brevi, oppure usa Google Gemini che regge documenti più lunghi."
+            // La finestra del modello integrato contiene il testo di partenza
+            // e il documento che sta scrivendo, insieme. Su un formato lungo
+            // si esaurisce mentre genera, anche se il testo di partenza era di
+            // due righe: dire solo "accorcia il testo" manda il docente a
+            // tagliare la lezione senza che serva a niente.
+            return "Il modello integrato ha esaurito lo spazio disponibile: la sua memoria di lavoro deve contenere insieme il testo di partenza e il documento da produrre. Se ne è già comparso un pezzo, è solo l'inizio e non va consegnato. Accorcia il testo di partenza, oppure usa Google Gemini che regge documenti molto più lunghi."
         case .refusedByGuardrail:
             return "Il modello integrato ha rifiutato di elaborare questo contenuto. Se il testo è didatticamente legittimo, usa Google Gemini."
         case .generationFailed(let detail):

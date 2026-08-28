@@ -87,10 +87,55 @@ final class StudentProfileTests: XCTestCase {
         viewModel.addStudent(StudentProfile(name: "Paolo Gialli", classInfo: "3ª B"))
         viewModel.sourceText = "Il ciclo Otto a quattro tempi."
 
-        // Senza API key la generazione fallisce, ma il registro deve restare intatto.
+        // Nessun motore disponibile: niente chiamate vere, e soprattutto un
+        // esito deterministico. Il registro GLO è un atto formale del docente
+        // (vedi TeacherViewModel.addGloEntry): generare materiale non deve
+        // scriverci dentro, né riuscendo né fallendo.
+        viewModel.systemModelStatus = .appleIntelligenceOff
         await viewModel.generateMaterial()
 
         XCTAssertTrue(viewModel.gloEntries.isEmpty)
         XCTAssertNotNil(viewModel.errorMessage)
+    }
+
+    /// Il modello integrato esaurisce il contesto *mentre scrive*, perché la
+    /// sua finestra tiene testo di partenza e documento insieme. Successo
+    /// misurato il 28 agosto 2026: due righe di testo, verifica equipollente,
+    /// contesto pieno a metà documento. Se in quel caso l'app dice "accorcia
+    /// il testo", manda il docente a tagliare una lezione già cortissima.
+    func testRunningOutOfContextWhileWritingDoesNotBlameTheTeachersText() {
+        let viewModel = AppViewModel(modelContext: makeContext())
+        viewModel.selectedFormat = .equipollenteExam
+        viewModel.generatedContent = "**VERIFICA DI MECCANICA AGRARIA**\n\n1. Descrivi il ciclo"
+
+        let message = viewModel.failureMessage(for: SystemModelError.contextTooLong)
+
+        XCTAssertTrue(message.contains("parte iniziale"),
+                      "Va detto che il testo a schermo è monco: \(message)")
+        XCTAssertTrue(message.contains("Gemini"),
+                      "Va detta la via d'uscita vera: \(message)")
+        XCTAssertFalse(message.contains("Accorcia il testo di partenza"),
+                       "Consiglio inutile quando a sforare è l'uscita: \(message)")
+    }
+
+    /// A documento non ancora cominciato non sappiamo chi abbia sforato, e il
+    /// messaggio generico — che nomina entrambe le cause — va bene.
+    func testRunningOutOfContextBeforeWritingKeepsTheGeneralExplanation() {
+        let viewModel = AppViewModel(modelContext: makeContext())
+
+        let message = viewModel.failureMessage(for: SystemModelError.contextTooLong)
+
+        XCTAssertEqual(message, SystemModelError.contextTooLong.errorDescription)
+    }
+
+    /// Su un Mac senza Apple Intelligence e senza chiave il pulsante di
+    /// generazione deve spegnersi e spiegare perché, non fallire al click.
+    func testWithoutAnyEngineTheTeacherIsToldWhyBeforeTrying() throws {
+        let viewModel = AppViewModel(modelContext: makeContext())
+        viewModel.systemModelStatus = .appleIntelligenceOff
+
+        XCTAssertFalse(viewModel.canGenerate)
+        let message = try XCTUnwrap(viewModel.engineRationale)
+        XCTAssertTrue(message.contains("Gemini"), "Va detto come sbloccarsi: \(message)")
     }
 }
