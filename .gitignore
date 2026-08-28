@@ -1,0 +1,18 @@
+# Build e artefatti Xcode
+build/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Stato locale dell'utente, non del progetto
+*.xcuserstate
+*.xcscmblueprint
+
+# Sistema
+.DS_Store
+
+# Dipendenze
+.swiftpm/
+Packages/
+Pods/
