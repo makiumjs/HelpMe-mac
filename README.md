@@ -22,7 +22,7 @@ OpenDyslexic, quattro temi anti-affaticamento. La mappa concettuale si
 naviga e il quiz si fa davvero, con il riscontro dopo ogni risposta. Il
 timer Focus propone pause attive e tiene i traguardi.
 
-## Le tre regole che reggono il progetto
+## Le quattro regole che reggono il progetto
 
 **I dati dei minori restano sul dispositivo.** L'app tratta dati personali
 e sanitari di minori con disabilità. Verso il cloud esce solo la forma
