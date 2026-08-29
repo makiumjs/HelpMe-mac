@@ -141,31 +141,70 @@ public nonisolated enum EquipollenteComposer {
                     "|---|---|---|---|"]
 
         for question in exam.questions {
-            let points = question.points.map(String.init) ?? "—"
+            let points = question.points.map(String.init) ?? ""
             rows.append("| \(question.number) | \(indicator(for: question)) | \(points) | |")
         }
 
+        var grid = "### Griglia di valutazione — Consiglio di Classe\n\n"
         if let total = exam.totalPoints {
             rows.append("| | **Totale** | **\(total)** | |")
         }
-        return "### Griglia di valutazione — Consiglio di Classe\n\n" + rows.joined(separator: "\n")
+        grid += rows.joined(separator: "\n")
+
+        // Meglio una colonna vuota che dei punteggi inventati: quanto pesa un
+        // quesito lo decide chi ha costruito la prova.
+        if exam.totalPoints == nil {
+            grid += "\n\n*La prova della classe non assegnava punteggi ai singoli quesiti: "
+                 + "la colonna dei punti previsti è da compilare.*"
+        }
+        return grid
     }
 
-    /// Un indicatore di partenza, dedotto dal verbo del quesito. Il docente lo
-    /// corregge: è un punto di partenza, non una valutazione automatica.
-    private static func indicator(for question: ExamQuestion) -> String {
-        let text = question.text.lowercased()
-        if text.hasPrefix("calcola") || text.contains("calcola il") || !question.subItems.isEmpty {
-            return "Applicazione: imposta e svolge il procedimento"
+    /// Un indicatore di partenza, dedotto da come è formulato il quesito.
+    ///
+    /// Il docente lo corregge: è un punto da cui partire, non una valutazione
+    /// automatica. Ma quattordici righe che dicono tutte "Conoscenza dei
+    /// contenuti" non fanno risparmiare niente a nessuno.
+    static func indicator(for question: ExamQuestion) -> String {
+        let text = question.text
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "it_IT"))
+            .trimmingCharacters(in: CharacterSet(charactersIn: "\"«»' "))
+
+        // I problemi con sotto-punti sono applicativi comunque siano scritti.
+        if !question.subItems.isEmpty { return "Applicazione: imposta e svolge il procedimento" }
+
+        for (openers, indicator) in indicatorRules where openers.contains(where: { text.hasPrefix($0) }) {
+            return indicator
         }
-        if text.hasPrefix("descrivi") || text.hasPrefix("illustra") || text.hasPrefix("spiega") {
-            return "Conoscenza: espone i contenuti richiesti"
-        }
-        if text.hasPrefix("definisci") || text.contains("terminologia") {
-            return "Lessico: usa i termini tecnici in modo appropriato"
+        if text.contains("calcola") { return "Applicazione: imposta e svolge il procedimento" }
+
+        // L'interrogativo non sta sempre in testa: "La rinnovata circolazione
+        // della moneta che cosa permetteva al re?" chiede la stessa cosa di
+        // "Che cosa permetteva al re la rinnovata circolazione della moneta?".
+        for (openers, indicator) in indicatorRules where openers.contains(where: { text.contains($0) }) {
+            return indicator
         }
         return "Conoscenza dei contenuti"
     }
+
+    /// Le forme in cui i docenti scrivono davvero i quesiti: consegne
+    /// all'imperativo e domande dirette.
+    private static let indicatorRules: [(openers: [String], indicator: String)] = [
+        (["perche"], "Comprensione: spiega le cause"),
+        // Con e senza apostrofo: "Com'era organizzato il territorio?" e'
+        // la forma piu' comune in cui una domanda del genere viene scritta.
+        (["come ", "com'era", "com'e", "concretamente, come", "in che modo"],
+         "Comprensione: descrive il procedimento"),
+        (["calcola", "determina", "converti", "risolvi"], "Applicazione: imposta e svolge il procedimento"),
+        (["definisci", "che cosa s'intende", "che cosa si intende", "cosa s'intende"],
+         "Lessico: usa i termini tecnici in modo appropriato"),
+        (["quale e la differenza", "qual e la differenza", "qual'e la differenza"],
+         "Conoscenza: distingue e confronta"),
+        (["chi "], "Conoscenza: individua i soggetti"),
+        (["quali ", "elenca"], "Conoscenza: individua ed elenca"),
+        (["descrivi", "illustra", "spiega", "esponi"], "Conoscenza: espone i contenuti richiesti"),
+        (["qual e", "qual'e", "quale e", "che cosa", "cosa "], "Conoscenza: definisce")
+    ]
 
     private static func teacherFooter(_ input: Input) -> String {
         let measures = (input.compensatory + input.dispensatory)

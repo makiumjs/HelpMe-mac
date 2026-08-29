@@ -124,6 +124,43 @@ public nonisolated enum ExamParser {
         }
         closeSection()
 
+        let parsed = ParsedExam(sections: sections, durationMinutes: duration(in: text))
+        return parsed.isEmpty ? parseUnnumberedQuestions(text) : parsed
+    }
+
+    /// Ricaduta per le verifiche scritte come elenco di domande, senza numeri.
+    ///
+    /// E' la forma in cui molti docenti le scrivono davvero: una domanda per
+    /// riga, il punto interrogativo a fine riga e basta. La prima versione
+    /// pretendeva "1." o "1)" e su una verifica di storia vera non riconosceva
+    /// niente, mandandola al modello - che ne ha persa una per strada fondendo
+    /// due domande in una.
+    ///
+    /// Si numera per riga e non per frase: "Chi era il re? Come emerge la sua
+    /// figura?" e' un quesito solo, con due domande dentro, e spezzarlo
+    /// cambierebbe la prova.
+    static func parseUnnumberedQuestions(_ text: String) -> ParsedExam {
+        var section = ExamSection()
+        var title: String?
+        var number = 1
+
+        for rawLine in text.components(separatedBy: .newlines) {
+            let line = rawLine.trimmingCharacters(in: CharacterSet(charactersIn: "#*_-• \t"))
+            guard !line.isEmpty, !isMetadata(line) else { continue }
+
+            if line.hasSuffix("?") {
+                section.questions.append(ExamQuestion(number: String(number), text: strippingPoints(line)))
+                number += 1
+            } else if title == nil, section.questions.isEmpty, let heading = sectionTitle(in: line) {
+                title = heading
+            }
+        }
+
+        guard !section.questions.isEmpty else { return ParsedExam(sections: [], durationMinutes: nil) }
+
+        var sections: [ExamSection] = []
+        if let title { sections.append(ExamSection(title: title)) }
+        sections.append(section)
         return ParsedExam(sections: sections, durationMinutes: duration(in: text))
     }
 
