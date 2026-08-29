@@ -140,12 +140,17 @@ public final class AppViewModel {
     /// useremmo è un'informazione che non gli serve a niente.
     public var engineRationale: String? {
         if let licenseProblem = LicenseGate.explanation(licenseState) { return licenseProblem }
+        if selectedFormat.isComposedLocally {
+            return "Questo formato non usa l'IA: si compila dalle misure registrate nella scheda dell'alunno, "
+                 + "con le diciture della normativa. Niente esce dal Mac."
+        }
         guard let engine = activeEngine else { return engineSelector.blockingMessage }
         return engineSelector.rationale(for: selectedFormat, engine: engine)
     }
 
     public var canGenerate: Bool {
-        activeEngine != nil && LicenseGate.canGenerate(licenseState)
+        guard LicenseGate.canGenerate(licenseState) else { return false }
+        return selectedFormat.isComposedLocally || activeEngine != nil
     }
 
     // MARK: - Editor
@@ -440,15 +445,6 @@ public final class AppViewModel {
     // MARK: - Generazione del materiale didattico
 
     public func generateMaterial() async {
-        guard !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            errorMessage = "Inserisci il testo base della lezione o della verifica curricolare."
-            return
-        }
-        guard !SourceTextCheck.looksLikeAnInstruction(sourceText) else {
-            errorMessage = SourceTextCheck.instructionExplanation(for: sourceText)
-            return
-        }
-
         guard let student = selectedStudent else {
             errorMessage = "Seleziona prima una scheda alunno."
             return
@@ -456,6 +452,23 @@ public final class AppViewModel {
 
         guard LicenseGate.canGenerate(licenseState) else {
             errorMessage = LicenseGate.explanation(licenseState)
+            return
+        }
+
+        // I formati che si compongono da soli non chiedono niente a nessun
+        // modello, e nemmeno un testo di partenza: quello che serve è già
+        // nella scheda dell'alunno.
+        if selectedFormat.isComposedLocally {
+            composeLocally(for: student)
+            return
+        }
+
+        guard !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            errorMessage = "Inserisci il testo base della lezione o della verifica curricolare."
+            return
+        }
+        guard !SourceTextCheck.looksLikeAnInstruction(sourceText) else {
+            errorMessage = SourceTextCheck.instructionExplanation(for: sourceText)
             return
         }
 
@@ -498,6 +511,27 @@ public final class AppViewModel {
         }
 
         isGenerating = false
+    }
+
+    /// Compone il materiale senza modello linguistico.
+    private func composeLocally(for student: StudentProfile) {
+        errorMessage = nil
+        switch selectedFormat {
+        case .pdpSummary:
+            generatedContent = PdpSheetComposer.compose(.init(
+                studentName: student.name,
+                classInfo: student.classInfo,
+                programTitle: student.programType.localizedTitle,
+                programReference: student.programType.legalReference,
+                interest: student.interest,
+                notes: student.notes,
+                compensatory: student.compensatoryMeasures,
+                dispensatory: student.dispensatoryMeasures
+            ))
+            statusMessage = "Scheda compilata dalle misure registrate per \(student.name). Nessun dato è uscito dal Mac."
+        default:
+            errorMessage = "Questo formato non ha ancora una composizione senza IA."
+        }
     }
 
     /// Traduce l'errore in una frase su cui il docente possa agire davvero.

@@ -53,14 +53,18 @@ public final class StudentProfile {
         programType: ProgramType = .minimi,
         interest: String = "Informatica e Gaming",
         notes: String = "",
+        // Riferimenti al catalogo, non diciture scritte a mano: cosi' il
+        // documento riporta le parole della normativa e le misure finiscono
+        // sotto la voce giusta. I tempi aggiuntivi sono una misura
+        // dispensativa (Linee guida 4.4), non uno strumento compensativo.
         compensatoryMeasures: [String] = [
-            "Tempo aggiuntivo +30%",
-            "Formulario e schede guida",
-            "Sintesi vocale / Lettore schermo"
+            "comp.sintesi-vocale",
+            "comp.formulari"
         ],
         dispensatoryMeasures: [String] = [
-            "Dispensa da lettura ad alta voce non preparata",
-            "Dispensa dalla scrittura manuale sotto dettatura veloce"
+            "disp.tempi",
+            "disp.lettura-alta-voce",
+            "disp.dettatura"
         ],
         createdAt: Date = Date()
     ) {

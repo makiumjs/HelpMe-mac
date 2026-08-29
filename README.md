@@ -5,7 +5,7 @@ Trasforma un testo curricolare nel materiale didattico personalizzato che
 serve a un alunno con DSA o ADHD, secondo il D.I. 182/2020.
 
 Progetto Xcode (`Helpme.xcodeproj`), SwiftUI, macOS 14+ / iPadOS 17+.
-**271 test.**
+**284 test.**
 
 ## Cosa fa
 
@@ -60,7 +60,28 @@ xcodebuild -project Helpme.xcodeproj -scheme Helpme -destination 'platform=macOS
 Per l'interfaccia conviene comunque Xcode: le anteprime SwiftUI e
 l'ispettore di accessibilità, su un'app per studenti con DSA, servono.
 
-## Motore IA
+## L'IA è un accessorio, non il motore
+
+L'app è un compilatore di documenti didattici: contenuto del docente +
+profilo dell'alunno + cataloghi normativi → materiale accessibile ed export
+ufficiale. Su 9.500 righe di sorgente, l'IA ne occupa 500. Lettore, karaoke,
+sillabazione, mappa navigabile, quiz interattivo, export Word, indice
+documentale e registro non la toccano.
+
+Un formato può dichiarare `isComposedLocally` e prodursi senza nessun
+modello. Il primo è la **Scheda Sintesi PDP**, e non per risparmiare: il
+documento riepiloga misure deliberate dal Consiglio di Classe e finisce nel
+fascicolo dell'alunno, quindi il suo valore sta nel riportare *esattamente*
+le parole della normativa — cosa che un modello, parafrasandole un po'
+diverse a ogni generazione, peggiorava senza aggiungere niente.
+`MeasureCatalog` tiene le diciture di L. 170/2010, D.M. 5669/2011 e
+D.I. 182/2020, e le misure vengono archiviate sotto la voce che la norma
+assegna loro, non sotto quella in cui il docente le aveva annotate.
+
+**Le diciture del catalogo vanno riviste da un docente di sostegno prima
+della vendita:** sono responsabilità professionale sua, non del software.
+
+## Motore IA (dove serve)
 
 Usa il modello integrato nel Mac (Apple Intelligence) quando c'è — nessuna
 chiave, nessun dato fuori — e ricade su Google Gemini altrimenti. La scelta

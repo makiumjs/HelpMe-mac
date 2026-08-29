@@ -33,6 +33,15 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
         }
     }
     
+    /// Vero per i formati che l'app produce da sé, senza nessun modello.
+    ///
+    /// Non è un ripiego per chi non ha una chiave: è la forma giusta per
+    /// questo documento. La Scheda PDP riepiloga misure deliberate dal
+    /// Consiglio di Classe, e il suo valore sta nel riportare *esattamente*
+    /// le parole della normativa — cosa che un modello, parafrasandole un po'
+    /// diverse a ogni generazione, peggiorava senza aggiungere niente.
+    public var isComposedLocally: Bool { self == .pdpSummary }
+
     /// Vero per i formati che il modello integrato non regge.
     ///
     /// Non è una stima: misurato il 28 agosto 2026 sul modello on-device di

@@ -68,6 +68,7 @@ final class SourceTextCheckTests: XCTestCase {
         )
         let viewModel = AppViewModel(modelContext: ModelContext(container))
         viewModel.addStudent(StudentProfile(name: "Paolo Gialli", classInfo: "3ª B"))
+        viewModel.selectedFormat = .equipollenteExam   // formato che passa da un motore
         viewModel.sourceText = "genera verifica sulla base del documento"
 
         await viewModel.generateMaterial()

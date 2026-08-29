@@ -55,7 +55,13 @@ final class StudentProfileTests: XCTestCase {
         XCTAssertEqual(refetched.count, 1)
         XCTAssertEqual(refetched.first?.name, "Marco Rossi")
         XCTAssertEqual(refetched.first?.programType, .minimi)
-        XCTAssertEqual(refetched.first?.compensatoryMeasures.count, 3)
+        // Le misure predefinite sono riferimenti al catalogo, non diciture
+        // scritte a mano: cosi' il documento riporta le parole della norma.
+        let misure = (refetched.first?.compensatoryMeasures ?? []) + (refetched.first?.dispensatoryMeasures ?? [])
+        XCTAssertFalse(misure.isEmpty)
+        for misura in misure {
+            XCTAssertNotNil(MeasureCatalog.measure(id: misura), "\(misura) non e' nel catalogo")
+        }
     }
 
     func testDeletingStudentAlsoRemovesGloEntries() throws {
@@ -85,6 +91,7 @@ final class StudentProfileTests: XCTestCase {
         let context = makeContext()
         let viewModel = AppViewModel(modelContext: context)
         viewModel.addStudent(StudentProfile(name: "Paolo Gialli", classInfo: "3ª B"))
+        viewModel.selectedFormat = .equipollenteExam   // formato che passa da un motore
         viewModel.sourceText = "Il ciclo Otto a quattro tempi."
 
         // Nessun motore disponibile: niente chiamate vere, e soprattutto un
@@ -132,6 +139,7 @@ final class StudentProfileTests: XCTestCase {
     /// generazione deve spegnersi e spiegare perché, non fallire al click.
     func testWithoutAnyEngineTheTeacherIsToldWhyBeforeTrying() throws {
         let viewModel = AppViewModel(modelContext: makeContext())
+        viewModel.selectedFormat = .equipollenteExam   // formato che passa da un motore
         viewModel.systemModelStatus = .appleIntelligenceOff
 
         XCTAssertFalse(viewModel.canGenerate)
