@@ -101,13 +101,23 @@ public nonisolated enum EquipollenteComposer {
 
             for question in section.questions {
                 var block = "**\(question.number).** " + spacedBeforeBlocks(question.text)
+
                 if !question.subItems.isEmpty {
-                    block += "\n\n" + question.subItems.enumerated()
-                        .map { "   \(letter(for: $0.offset))) \($0.element)" }
-                        .joined(separator: "\n\n" + answerSpace(lines: 2) + "\n\n")
+                    for (index, sub) in question.subItems.enumerated() {
+                        block += "\n\n   \(letter(for: index))) \(sub)"
+                        block += "\n\n" + (guidedSteps(for: sub).map { $0.joined(separator: "\n\n") }
+                                            ?? answerSpace(lines: 3))
+                    }
+                    blocks.append(block)
+                    continue
                 }
-                let lines = writingLines(for: question)
-                if lines > 0 { block += "\n\n" + answerSpace(lines: lines) }
+
+                if let steps = guidedSteps(for: question.text) {
+                    block += "\n\n" + steps.joined(separator: "\n\n")
+                } else {
+                    let lines = writingLines(for: question)
+                    if lines > 0 { block += "\n\n" + answerSpace(lines: lines) }
+                }
                 blocks.append(block)
             }
         }
@@ -145,6 +155,53 @@ public nonisolated enum EquipollenteComposer {
         return result.joined(separator: "\n")
     }
 
+    /// La scomposizione in micro-step di un quesito, quando la sua forma la
+    /// rende prevedibile.
+    ///
+    /// Sono i due casi in cui un docente di sostegno scrive sempre le stesse
+    /// righe: un problema da calcolare, che si scompone in dati-formula-
+    /// -calcolo-risultato, e una consegna che chiede un numero preciso di
+    /// elementi, che si scompone in altrettante caselle numerate. Il resto —
+    /// scomporre una domanda aperta di storia — richiede di conoscere
+    /// l'alunno e resta al docente.
+    static func guidedSteps(for text: String) -> [String]? {
+        let lower = text.folding(options: [.diacriticInsensitive, .caseInsensitive],
+                                 locale: Locale(identifier: "it_IT"))
+
+        if ["calcola", "determina", "converti", "risolvi"].contains(where: { lower.hasPrefix($0) }) {
+            return [
+                "Dati che hai: ______________________________________",
+                "Formula che userai: _________________________________",
+                "Sostituisci i dati e calcola:",
+                "",
+                "Risultato, con l'unità di misura: ____________________"
+            ]
+        }
+
+        if let count = requestedCount(in: lower), count >= 2, count <= 6 {
+            return (1...count).map { "\($0). _________________________________________" }
+        }
+        return nil
+    }
+
+    /// "Elenca i tre tipi di margine" → 3. Serve a dare una casella per
+    /// ciascuno, invece di un unico spazio in cui incastrarli tutti.
+    static func requestedCount(in text: String) -> Int? {
+        let words = ["due": 2, "tre": 3, "quattro": 4, "cinque": 5, "sei": 6]
+        guard ["elenca", "indica", "individua", "scrivi", "cita", "nomina"]
+            .contains(where: { text.hasPrefix($0) }) else { return nil }
+
+        // Si scorre da sinistra e si prende il primo numero: "Elenca i tre
+        // tipi di margine fra due placche" ne contiene due, e quello giusto
+        // e' quello che qualifica la cosa da elencare, cioe' il primo.
+        // Ciclare su un dizionario dava l'uno o l'altro a caso.
+        for token in text.split(whereSeparator: { !$0.isLetter && !$0.isNumber }) {
+            if let value = words[String(token)] { return value }
+            if let digit = Int(token), (2...6).contains(digit) { return digit }
+        }
+        return nil
+    }
+
     /// Vero quando la risposta si scrive dentro il testo del quesito.
     static func answersInPlace(_ question: ExamQuestion) -> Bool {
         let text = question.text
@@ -164,6 +221,47 @@ public nonisolated enum EquipollenteComposer {
         return index < alphabet.count ? String(alphabet[index]) : "\(index + 1)"
     }
 
+    /// Il punteggio di ogni quesito, completando quelli che la prova non
+    /// assegnava esplicitamente.
+    ///
+    /// In una verifica ogni quesito ha un punteggio: una griglia con caselle
+    /// vuote non e' una griglia, e lascia il lavoro a chi doveva riceverlo
+    /// fatto. Quelli che proponiamo noi si distinguono, perche' restano da
+    /// confermare.
+    ///
+    /// - Se la prova dichiara un totale, il residuo si divide fra i quesiti
+    ///   scoperti, dando l'eventuale avanzo ai primi.
+    /// - Se non lo dichiara ma qualche punteggio c'e', si usa la media.
+    /// - Se non c'e' niente, un punto per quesito: e' un segnaposto onesto.
+    static func pointsByQuestion(_ exam: ParsedExam) -> (points: [String: Int], proposed: Set<String>) {
+        var points: [String: Int] = [:]
+        for question in exam.questions where question.points != nil {
+            points[question.number] = question.points
+        }
+
+        let uncovered = exam.questions.filter { $0.points == nil }.map(\.number)
+        guard !uncovered.isEmpty else { return (points, []) }
+
+        let known = points.values.reduce(0, +)
+        let share: Int
+        var remainder = 0
+
+        if let declared = exam.declaredTotalPoints, declared > known {
+            let residue = declared - known
+            share = residue / uncovered.count
+            remainder = residue % uncovered.count
+        } else if !points.isEmpty {
+            share = max(1, Int((Double(known) / Double(points.count)).rounded()))
+        } else {
+            share = 1
+        }
+
+        for (index, number) in uncovered.enumerated() {
+            points[number] = max(1, share + (index < remainder ? 1 : 0))
+        }
+        return (points, Set(uncovered))
+    }
+
     /// La griglia è obbligatoria (D.I. 182/2020) e qui si costruisce dai
     /// punteggi che il docente curricolare aveva già assegnato: l'equipollenza
     /// sta anche nel non cambiare il peso dei quesiti.
@@ -171,28 +269,24 @@ public nonisolated enum EquipollenteComposer {
         var rows = ["| Quesito | Indicatore | Punti previsti | Punti assegnati |",
                     "|---|---|---|---|"]
 
+        let (points, proposed) = pointsByQuestion(exam)
         for question in exam.questions {
-            let points = question.points.map(String.init) ?? ""
-            rows.append("| \(question.number) | \(indicator(for: question)) | \(points) | |")
+            let value = points[question.number].map(String.init) ?? ""
+            // Corsivo su quelli proposti da noi: si vedono a colpo d'occhio
+            // e si sa quali confermare.
+            let cell = proposed.contains(question.number) ? "*\(value)*" : value
+            rows.append("| \(question.number) | \(indicator(for: question)) | \(cell) | |")
         }
 
-        var grid = "### Griglia di valutazione — Consiglio di Classe\n\n"
-        if let total = exam.totalPoints {
-            rows.append("| | **Totale** | **\(total)** | |")
-        }
-        grid += rows.joined(separator: "\n")
+        let total = points.values.reduce(0, +)
+        if total > 0 { rows.append("| | **Totale** | **\(total)** | |") }
 
-        // Meglio una colonna vuota che dei punteggi inventati: quanto pesa un
-        // quesito lo decide chi ha costruito la prova.
-        if exam.totalPoints == nil {
-            grid += "\n\n*La prova della classe non assegnava punteggi ai singoli quesiti: "
-                 + "la colonna dei punti previsti è da compilare.*"
-        } else if let declared = exam.declaredTotalPoints {
-            let recognised = exam.questions.compactMap(\.points).reduce(0, +)
-            if recognised < declared {
-                grid += "\n\n*Dei \(declared) punti dichiarati dalla prova ne ho riconosciuti \(recognised): "
-                     + "le caselle vuote sono quesiti a cui il testo di partenza non assegnava un punteggio.*"
-            }
+        var grid = "### Griglia di valutazione — Consiglio di Classe\n\n" + rows.joined(separator: "\n")
+
+        if !proposed.isEmpty {
+            let quali = proposed.sorted { ($0 as NSString).intValue < ($1 as NSString).intValue }.joined(separator: ", ")
+            grid += "\n\n*I punteggi in corsivo — quesiti \(quali) — non erano indicati nella prova della classe: "
+                 + "sono una proposta in parti uguali, da confermare.*"
         }
         return grid
     }

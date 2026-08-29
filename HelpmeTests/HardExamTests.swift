@@ -238,15 +238,20 @@ final class ComposedSheetTests: XCTestCase {
         XCTAssertTrue(indicatore("Argomenta in almeno cinque righe.").contains("Argomentazione"))
     }
 
-    /// Se i punteggi riconosciuti non arrivano al totale dichiarato, il
-    /// documento lo dice invece di lasciare il docente a fare i conti.
-    func testTheGridAdmitsWhenTheRecognisedPointsDoNotAddUp() {
+    /// I punti che la prova non assegnava non si segnalano soltanto: si
+    /// compilano. In una verifica ogni quesito ha un punteggio, e una
+    /// griglia con caselle vuote lascia il lavoro a chi doveva riceverlo
+    /// fatto. Quelli proposti restano riconoscibili.
+    func testTheMissingPointsAreFilledInAndMarkedAsProposed() {
         let testo = foglio("""
         1. Prima domanda? (punti 5)
         2. Seconda domanda senza punteggio?
 
         Punteggio totale: 30.
         """)
-        XCTAssertTrue(testo.contains("ne ho riconosciuti 5"), testo)
+
+        XCTAssertTrue(testo.contains("| *25* |"), "Il residuo va al quesito scoperto: \(testo)")
+        XCTAssertTrue(testo.contains("**30**"), "E il totale torna a quello dichiarato.")
+        XCTAssertTrue(testo.contains("da confermare"), testo)
     }
 }
