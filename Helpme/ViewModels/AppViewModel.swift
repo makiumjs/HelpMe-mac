@@ -150,6 +150,13 @@ public final class AppViewModel {
 
     // MARK: - Editor
 
+    /// Oltre questa soglia il documento importato non viene riversato
+    /// nell'editor: un manuale intero lo renderebbe inutilizzabile, e chi
+    /// importa qualcosa di quella mole lo sta indicizzando per la
+    /// consultazione, non per adattarlo tutto. Sono all'incirca venticinque
+    /// pagine.
+    static let editorFillLimit = 50_000
+
     public var sourceText: String = ""
     public var generatedContent: String = ""
     public var isGenerating: Bool = false
@@ -292,16 +299,32 @@ public final class AppViewModel {
         var totalChunks = 0
         var failures: [String] = []
 
+        var singleDocumentText: String?
+
         for url in urls {
             do {
-                let count = try await Task.detached(priority: .userInitiated) {
-                    try search.indexDocument(url: url)
+                let imported = try await Task.detached(priority: .userInitiated) {
+                    try search.importDocument(url: url)
                 }.value
-                importedTitles.append(url.deletingPathExtension().lastPathComponent)
-                totalChunks += count
+                importedTitles.append(imported.title)
+                totalChunks += imported.chunkCount
+                if urls.count == 1 { singleDocumentText = imported.text }
             } catch {
                 failures.append("\(url.lastPathComponent) — \(error.localizedDescription)")
             }
+        }
+
+        // Chi importa *un* documento quasi sempre vuole adattare quello.
+        // Prima il testo spariva nell'indice e l'editor restava vuoto, cosi'
+        // il docente si trovava un pulsante "Genera" che partiva dal nulla e
+        // pescava dall'indice quello che capitava. Non si sovrascrive mai
+        // quello che il docente ha gia' scritto.
+        var filledEditor = false
+        if let singleDocumentText,
+           singleDocumentText.count <= Self.editorFillLimit,
+           sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            sourceText = singleDocumentText
+            filledEditor = true
         }
 
         refreshIndexState()
@@ -309,9 +332,15 @@ public final class AppViewModel {
 
         if !importedTitles.isEmpty {
             let names = importedTitles.joined(separator: ", ")
-            statusMessage = importedTitles.count == 1
-                ? "Indicizzato «\(names)»: \(Plural.it(totalChunks, "frammento", "frammenti")) consultabili dall'IA."
-                : "Indicizzati \(Plural.it(importedTitles.count, "documento", "documenti")) (\(names)): \(Plural.it(totalChunks, "frammento", "frammenti")) in tutto."
+            if filledEditor {
+                statusMessage = "«\(names)» è ora il testo di partenza nell'editor, e i suoi "
+                    + "\(Plural.it(totalChunks, "frammento", "frammenti")) sono consultabili dall'IA. "
+                    + "Modificalo pure prima di generare."
+            } else {
+                statusMessage = importedTitles.count == 1
+                    ? "Indicizzato «\(names)»: \(Plural.it(totalChunks, "frammento", "frammenti")) consultabili dall'IA."
+                    : "Indicizzati \(Plural.it(importedTitles.count, "documento", "documenti")) (\(names)): \(Plural.it(totalChunks, "frammento", "frammenti")) in tutto."
+            }
         }
 
         // Un file scartato viene detto, non ingoiato: il docente deve sapere
@@ -415,6 +444,11 @@ public final class AppViewModel {
             errorMessage = "Inserisci il testo base della lezione o della verifica curricolare."
             return
         }
+        guard !SourceTextCheck.looksLikeAnInstruction(sourceText) else {
+            errorMessage = SourceTextCheck.instructionExplanation(for: sourceText)
+            return
+        }
+
         guard let student = selectedStudent else {
             errorMessage = "Seleziona prima una scheda alunno."
             return

@@ -201,6 +201,22 @@ public struct MainWorkspaceView: View {
                     .font(.system(.body, design: .monospaced))
                     .scrollContentBackground(.hidden)
                     .padding(8)
+                    // Un riquadro vuoto accanto a un pulsante "Genera" si
+                    // legge come una casella dove chiedere qualcosa all'IA.
+                    // Qui invece ci va il testo da trasformare: se non lo si
+                    // dice, l'istruzione scritta dal docente finisce nel
+                    // prompt al posto della lezione.
+                    .overlay(alignment: .topLeading) {
+                        if appViewModel.sourceText.isEmpty {
+                            Text("Incolla qui la lezione o la verifica della classe da adattare.\n\nNon è una casella di richieste: questo è il testo di partenza. Con «Importa» il documento finisce direttamente qui.")
+                                .font(.system(.callout, design: .rounded))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 13)
+                                .padding(.vertical, 16)
+                                .allowsHitTesting(false)
+                                .accessibilityHidden(true)
+                        }
+                    }
                     .background(Color.appTextBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .overlay(

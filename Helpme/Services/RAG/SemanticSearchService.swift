@@ -1,6 +1,14 @@
 import Foundation
 
 /// Un documento presente nell'indice, come lo vede il docente.
+/// Esito di un'importazione: quanto e' finito nell'indice, e il testo
+/// estratto, che il docente puo' volersi ritrovare nell'editor.
+public nonisolated struct ImportedDocument: Sendable {
+    public let title: String
+    public let text: String
+    public let chunkCount: Int
+}
+
 public nonisolated struct IndexedDocument: Identifiable, Sendable, Equatable {
     public var id: String { title }
     public let title: String
@@ -30,6 +38,15 @@ public nonisolated final class SemanticSearchService: @unchecked Sendable {
     /// altrimenti la lettura fallisce con un errore di permessi.
     @discardableResult
     public func indexDocument(url: URL, title: String? = nil) throws -> Int {
+        try importDocument(url: url, title: title).chunkCount
+    }
+
+    /// Come `indexDocument`, ma restituisce anche il testo estratto.
+    ///
+    /// Serve perche' indicizzare non basta: il docente che importa la lezione
+    /// vuole adattare *quella*, e finora il testo spariva nell'indice mentre
+    /// l'editor restava vuoto. Si estrae una volta sola.
+    public func importDocument(url: URL, title: String? = nil) throws -> ImportedDocument {
         let docTitle = title ?? url.deletingPathExtension().lastPathComponent
 
         let needsScopedAccess = url.startAccessingSecurityScopedResource()
@@ -48,7 +65,7 @@ public nonisolated final class SemanticSearchService: @unchecked Sendable {
         // duplicarne i frammenti nei risultati della ricerca.
         vectorStore.removeChunks(ofDocument: docTitle)
         vectorStore.add(chunks: chunks)
-        return chunks.count
+        return ImportedDocument(title: docTitle, text: text, chunkCount: chunks.count)
     }
 
     @discardableResult
