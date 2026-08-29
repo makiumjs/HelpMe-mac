@@ -35,22 +35,13 @@ public struct MainWorkspaceView: View {
         Group {
             if appViewModel.hasNoStudents {
                 WelcomeView(
-                    onCreateStudent: { teacherViewModel.showNewStudentModal = true },
-                    onConfigureSchool: { teacherViewModel.showSchoolHeaderModal = true }
+                    onCreateStudent: { teacherViewModel.activeSheet = .newStudent },
+                    onConfigureSchool: { teacherViewModel.activeSheet = .schoolHeader }
                 )
-                .sheet(isPresented: $teacherViewModel.showNewStudentModal) {
-                    StudentProfileModal(teacherViewModel: teacherViewModel)
-                }
-                .sheet(isPresented: $teacherViewModel.showQuizBuilder) {
-                    QuizBuilderModal(appViewModel: appViewModel)
-                }
-                .sheet(isPresented: $teacherViewModel.showMeasuresModal) {
-                    if let student = appViewModel.selectedStudent {
-                        MeasuresChecklistModal(teacherViewModel: teacherViewModel, student: student)
-                    }
-                }
-                .sheet(isPresented: $teacherViewModel.showSchoolHeaderModal) {
-                    SchoolHeaderConfigModal(teacherViewModel: teacherViewModel)
+                .sheet(item: $teacherViewModel.activeSheet) { sheet in
+                    TeacherSheetPresenter(sheet: sheet,
+                                          appViewModel: appViewModel,
+                                          teacherViewModel: teacherViewModel)
                 }
             } else {
                 workspace

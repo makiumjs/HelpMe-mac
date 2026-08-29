@@ -1,17 +1,25 @@
 import Foundation
 import SwiftUI
 
+public enum TeacherSheet: String, Identifiable, Sendable {
+    case newStudent, measures, quizBuilder, gloDiary, schoolHeader
+    public var id: String { rawValue }
+}
+
 @Observable
 @MainActor
 public final class TeacherViewModel {
 
     public var appViewModel: AppViewModel
 
-    public var showNewStudentModal: Bool = false
-    public var showGloDiaryModal: Bool = false
-    public var showSchoolHeaderModal: Bool = false
-    public var showMeasuresModal: Bool = false
-    public var showQuizBuilder: Bool = false
+    /// Il pannello aperto, se ce n'e' uno.
+    ///
+    /// Era una bandiera per pannello, con un `.sheet` per ciascuna: SwiftUI
+    /// non presenta in modo affidabile piu' fogli incatenati sulla stessa
+    /// vista, e i due aggiunti per ultimi non si aprivano affatto. Con un
+    /// valore solo il caso non si puo' piu' presentare, e chi aggiunge un
+    /// pannello domani non deve saperlo.
+    public var activeSheet: TeacherSheet? = nil
 
     // Esportazione .docx tramite pannello "Salva con nome"
     public var showDocxExporter: Bool = false

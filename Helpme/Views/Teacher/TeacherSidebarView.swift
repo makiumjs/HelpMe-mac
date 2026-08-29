@@ -21,7 +21,7 @@ public struct TeacherSidebarView: View {
                 
                 Spacer()
                 
-                Button(action: { teacherViewModel.showNewStudentModal = true }) {
+                Button(action: { teacherViewModel.activeSheet = .newStudent }) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 18))
                         .foregroundColor(Color.institutional)
@@ -128,7 +128,7 @@ public struct TeacherSidebarView: View {
             
             // Strumenti Rapidi Docente con Contrasto e Feedback Ottimizzati
             VStack(spacing: 10) {
-                Button(action: { teacherViewModel.showMeasuresModal = true }) {
+                Button(action: { teacherViewModel.activeSheet = .measures }) {
                     Label("Misure PDP dell'alunno", systemImage: "checklist")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -136,14 +136,14 @@ public struct TeacherSidebarView: View {
                 .disabled(teacherViewModel.appViewModel.selectedStudent == nil)
                 .help("Strumenti compensativi e misure dispensative, dal catalogo normativo")
 
-                Button(action: { teacherViewModel.showQuizBuilder = true }) {
+                Button(action: { teacherViewModel.activeSheet = .quizBuilder }) {
                     Label("Scrivi il quiz", systemImage: "checkmark.bubble")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.bordered)
                 .help("Scrive un quiz cliccabile senza passare dall'IA")
 
-                Button(action: { teacherViewModel.showGloDiaryModal = true }) {
+                Button(action: { teacherViewModel.activeSheet = .gloDiary }) {
                     Label("Registro GLO (4 Dimensioni)", systemImage: "book.pages.fill")
                         .font(.system(size: 12, weight: .medium, design: .rounded))
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -152,7 +152,7 @@ public struct TeacherSidebarView: View {
                 .buttonStyle(.bordered)
                 .accessibilityHint("Apre il registro di bordo per le 4 dimensioni ministeriali D.I. 182/2020")
                 
-                Button(action: { teacherViewModel.showSchoolHeaderModal = true }) {
+                Button(action: { teacherViewModel.activeSheet = .schoolHeader }) {
                     Label("Intestazione Scuola (.docx)", systemImage: "building.columns.fill")
                         .font(.system(size: 12, weight: .medium, design: .rounded))
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -188,14 +188,10 @@ public struct TeacherSidebarView: View {
             Spacer()
         }
         .padding(16)
-        .sheet(isPresented: $teacherViewModel.showNewStudentModal) {
-            StudentProfileModal(teacherViewModel: teacherViewModel)
-        }
-        .sheet(isPresented: $teacherViewModel.showGloDiaryModal) {
-            GloDiaryModalView(teacherViewModel: teacherViewModel)
-        }
-        .sheet(isPresented: $teacherViewModel.showSchoolHeaderModal) {
-            SchoolHeaderConfigModal(teacherViewModel: teacherViewModel)
+        .sheet(item: $teacherViewModel.activeSheet) { sheet in
+            TeacherSheetPresenter(sheet: sheet,
+                                  appViewModel: appViewModel,
+                                  teacherViewModel: teacherViewModel)
         }
         .fileExporter(
             isPresented: $teacherViewModel.showDocxExporter,
