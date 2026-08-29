@@ -128,6 +128,14 @@ public struct TeacherSidebarView: View {
             
             // Strumenti Rapidi Docente con Contrasto e Feedback Ottimizzati
             VStack(spacing: 10) {
+                Button(action: { teacherViewModel.showMeasuresModal = true }) {
+                    Label("Misure PDP dell'alunno", systemImage: "checklist")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.bordered)
+                .disabled(teacherViewModel.appViewModel.selectedStudent == nil)
+                .help("Strumenti compensativi e misure dispensative, dal catalogo normativo")
+
                 Button(action: { teacherViewModel.showGloDiaryModal = true }) {
                     Label("Registro GLO (4 Dimensioni)", systemImage: "book.pages.fill")
                         .font(.system(size: 12, weight: .medium, design: .rounded))

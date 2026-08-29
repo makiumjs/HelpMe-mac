@@ -10,6 +10,7 @@ public final class TeacherViewModel {
     public var showNewStudentModal: Bool = false
     public var showGloDiaryModal: Bool = false
     public var showSchoolHeaderModal: Bool = false
+    public var showMeasuresModal: Bool = false
 
     // Esportazione .docx tramite pannello "Salva con nome"
     public var showDocxExporter: Bool = false
@@ -41,6 +42,14 @@ public final class TeacherViewModel {
 
     public func deleteStudent(_ student: StudentProfile) {
         appViewModel.deleteStudent(student)
+    }
+
+    /// Registra le misure scelte per l'alunno.
+    public func saveMeasures(_ selection: MeasureSelection, for student: StudentProfile) {
+        let lists = selection.lists()
+        student.compensatoryMeasures = lists.compensatory
+        student.dispensatoryMeasures = lists.dispensatory
+        appViewModel.saveChanges()
     }
 
     // MARK: - Registro GLO

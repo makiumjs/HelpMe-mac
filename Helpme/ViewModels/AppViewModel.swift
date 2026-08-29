@@ -235,6 +235,12 @@ public final class AppViewModel {
         }
     }
 
+    /// Scrive su disco le modifiche fatte a una scheda gia' esistente.
+    public func saveChanges() {
+        persist()
+        reloadFromStore()
+    }
+
     // MARK: - Alunni
 
     public func addStudent(_ student: StudentProfile) {

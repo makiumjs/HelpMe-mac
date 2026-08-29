@@ -41,6 +41,11 @@ public struct MainWorkspaceView: View {
                 .sheet(isPresented: $teacherViewModel.showNewStudentModal) {
                     StudentProfileModal(teacherViewModel: teacherViewModel)
                 }
+                .sheet(isPresented: $teacherViewModel.showMeasuresModal) {
+                    if let student = appViewModel.selectedStudent {
+                        MeasuresChecklistModal(teacherViewModel: teacherViewModel, student: student)
+                    }
+                }
                 .sheet(isPresented: $teacherViewModel.showSchoolHeaderModal) {
                     SchoolHeaderConfigModal(teacherViewModel: teacherViewModel)
                 }
