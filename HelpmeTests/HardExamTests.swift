@@ -138,3 +138,115 @@ final class HardExamTests: XCTestCase {
         XCTAssertTrue(titoli.contains { $0.contains("Parte terza") }, "\(titoli)")
     }
 }
+
+/// Difetti visti nel foglio vero prodotto dall'app, non dai test: e' il
+/// motivo per cui il foglio va guardato da docente e non solo compilato.
+final class ComposedSheetTests: XCTestCase {
+
+    private func foglio(_ testo: String) -> String {
+        EquipollenteComposer.compose(.init(
+            studentName: "Andrea Pirlo", classInfo: "1ITA",
+            programTitle: ProgramType.minimi.localizedTitle,
+            compensatory: ["comp.formulari"], dispensatory: ["disp.tempi"],
+            exam: ExamParser.parse(testo)))
+    }
+
+    /// La coda della prova finiva stampata dentro l'ultimo quesito, come
+    /// prima ci finiva la durata.
+    func testTheScoringFooterDoesNotEndUpInsideTheLastQuestion() {
+        let esame = ExamParser.parse("""
+        1. Prima domanda?
+        2. Ultima domanda?
+
+        Punteggio totale: 30. La sufficienza è fissata a 18.
+        """)
+
+        XCTAssertEqual(esame.questions.count, 2)
+        for quesito in esame.questions {
+            XCTAssertFalse(quesito.text.contains("sufficienza"), quesito.text)
+            XCTAssertFalse(quesito.text.contains("Punteggio totale"), quesito.text)
+        }
+        XCTAssertEqual(esame.totalPoints, 30, "Il totale si legge lo stesso, solo non finisce nel quesito.")
+    }
+
+    // MARK: - Dove la risposta si scrive dentro il quesito
+
+    func testAClozeGetsNoExtraWritingLines() {
+        let testo = foglio("1. Completa: il magma che esce prende il nome di ______________.")
+
+        XCTAssertTrue(testo.contains("______________."), "Lo spazio del completamento resta.")
+        XCTAssertFalse(testo.contains("_______________________________________________"),
+                       "Ma non servono righe in più sotto: si risponde dentro la frase.")
+    }
+
+    func testATrueFalseListGetsNoExtraWritingLines() {
+        let testo = foglio("""
+        1. Indica se le seguenti affermazioni sono vere o false:
+           • La crosta oceanica è più densa.  V  F
+           • L'astenosfera è plastica.  V  F
+        """)
+        XCTAssertFalse(testo.contains("_______________________________________________"), testo)
+    }
+
+    func testATableToCompleteGetsNoExtraWritingLines() {
+        let testo = foglio("""
+        1. Completa la tabella:
+           | Zona | Margine |
+           |---|---|
+           | Islanda |  |
+        """)
+        XCTAssertFalse(testo.contains("_______________________________________________"), testo)
+    }
+
+    /// Ma una domanda aperta le righe le vuole eccome.
+    func testAnOpenQuestionStillGetsItsWritingLines() {
+        let testo = foglio("1. Che cos'è una placca litosferica? (punti 5)")
+        XCTAssertTrue(testo.contains("_______________________________________________"))
+    }
+
+    // MARK: - Formattazione
+
+    /// Una tabella attaccata alla frase che la introduce non si formatta:
+    /// nel documento Word resterebbero i tubi verticali in mezzo al testo.
+    func testATableGetsABlankLineBeforeIt() {
+        let testo = foglio("""
+        1. Completa la tabella:
+           | Zona | Margine |
+           |---|---|
+        """)
+        XCTAssertTrue(testo.contains("tabella:\n\n| Zona"), testo)
+    }
+
+    func testABulletedListGetsABlankLineBeforeIt() {
+        let testo = foglio("""
+        1. Indica se sono vere o false:
+           • Prima affermazione.  V  F
+        """)
+        XCTAssertTrue(testo.contains("false:\n\n• Prima"), testo)
+    }
+
+    // MARK: - Griglia
+
+    func testTheIndicatorsCoverTheExerciseTypesToo() {
+        func indicatore(_ t: String) -> String {
+            EquipollenteComposer.indicator(for: ExamQuestion(number: "1", text: t))
+        }
+        XCTAssertTrue(indicatore("Che cos'è una placca litosferica?").contains("Lessico"))
+        XCTAssertTrue(indicatore("Completa: il magma prende il nome di ___").contains("Completamento"))
+        XCTAssertTrue(indicatore("Indica se le affermazioni sono vere o false:").contains("vero e falso"))
+        XCTAssertTrue(indicatore("Osserva la carta e completa la tabella:").contains("colloca"))
+        XCTAssertTrue(indicatore("Argomenta in almeno cinque righe.").contains("Argomentazione"))
+    }
+
+    /// Se i punteggi riconosciuti non arrivano al totale dichiarato, il
+    /// documento lo dice invece di lasciare il docente a fare i conti.
+    func testTheGridAdmitsWhenTheRecognisedPointsDoNotAddUp() {
+        let testo = foglio("""
+        1. Prima domanda? (punti 5)
+        2. Seconda domanda senza punteggio?
+
+        Punteggio totale: 30.
+        """)
+        XCTAssertTrue(testo.contains("ne ho riconosciuti 5"), testo)
+    }
+}

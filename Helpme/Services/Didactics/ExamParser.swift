@@ -250,6 +250,12 @@ public nonisolated enum ExamParser {
             || lower.hasPrefix("tempo:")
             || lower.hasPrefix("durata")
             || lower.hasPrefix("tempo ")
+            // La coda della prova: senza questo finiva stampata dentro
+            // l'ultimo quesito, come prima ci finiva la durata.
+            || lower.hasPrefix("punteggio totale")
+            || lower.hasPrefix("punteggio massimo")
+            || lower.contains("la sufficienza")
+            || lower.hasPrefix("valutazione:")
     }
 
     /// "(punti 5)", "(5 punti)", "punti: 5"

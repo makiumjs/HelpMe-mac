@@ -100,13 +100,14 @@ public nonisolated enum EquipollenteComposer {
             if let title = section.title { blocks.append("### \(title)") }
 
             for question in section.questions {
-                var block = "**\(question.number).** \(question.text)"
+                var block = "**\(question.number).** " + spacedBeforeBlocks(question.text)
                 if !question.subItems.isEmpty {
                     block += "\n\n" + question.subItems.enumerated()
                         .map { "   \(letter(for: $0.offset))) \($0.element)" }
                         .joined(separator: "\n\n" + answerSpace(lines: 2) + "\n\n")
                 }
-                block += "\n\n" + answerSpace(lines: writingLines(for: question))
+                let lines = writingLines(for: question)
+                if lines > 0 { block += "\n\n" + answerSpace(lines: lines) }
                 blocks.append(block)
             }
         }
@@ -117,10 +118,40 @@ public nonisolated enum EquipollenteComposer {
     /// punti chiede più righe di uno da due. Chi scrive a fatica ha bisogno
     /// di righe grandi, non di margini stretti.
     private static func writingLines(for question: ExamQuestion) -> Int {
+        // Un completamento, un vero/falso o una tabella da riempire si
+        // rispondono dentro il quesito: le righe sotto sono spazio sprecato,
+        // e su un foglio che deve restare corto contano.
+        if answersInPlace(question) { return 0 }
         guard let points = question.points else { return 4 }
         // Righe generose ma non sprecate: chi scrive a fatica ha bisogno di
         // spazio, ma un compito di sei pagine si affronta peggio di uno di due.
         return min(8, max(3, points + 1))
+    }
+
+    /// Una tabella markdown o un elenco vogliono una riga vuota davanti,
+    /// altrimenti restano attaccati alla frase e non si formattano.
+    static func spacedBeforeBlocks(_ text: String) -> String {
+        let lines = text.components(separatedBy: "\n")
+        guard lines.count > 1 else { return text }
+
+        var result = [lines[0]]
+        var opened = false
+        for line in lines.dropFirst() {
+            let isBlock = line.hasPrefix("|") || line.hasPrefix("•") || line.hasPrefix("- ")
+            if isBlock && !opened { result.append("") }
+            opened = isBlock
+            result.append(line)
+        }
+        return result.joined(separator: "\n")
+    }
+
+    /// Vero quando la risposta si scrive dentro il testo del quesito.
+    static func answersInPlace(_ question: ExamQuestion) -> Bool {
+        let text = question.text
+        return text.contains("______")            // completamento
+            || text.contains("\n|")               // tabella da riempire
+            || text.contains(" V  F")             // vero/falso
+            || text.localizedCaseInsensitiveContains("vere o false")
     }
 
     private static func answerSpace(lines: Int) -> String {
@@ -156,6 +187,12 @@ public nonisolated enum EquipollenteComposer {
         if exam.totalPoints == nil {
             grid += "\n\n*La prova della classe non assegnava punteggi ai singoli quesiti: "
                  + "la colonna dei punti previsti è da compilare.*"
+        } else if let declared = exam.declaredTotalPoints {
+            let recognised = exam.questions.compactMap(\.points).reduce(0, +)
+            if recognised < declared {
+                grid += "\n\n*Dei \(declared) punti dichiarati dalla prova ne ho riconosciuti \(recognised): "
+                     + "le caselle vuote sono quesiti a cui il testo di partenza non assegnava un punteggio.*"
+            }
         }
         return grid
     }
@@ -196,7 +233,12 @@ public nonisolated enum EquipollenteComposer {
         (["come ", "com'era", "com'e", "concretamente, come", "in che modo"],
          "Comprensione: descrive il procedimento"),
         (["calcola", "determina", "converti", "risolvi"], "Applicazione: imposta e svolge il procedimento"),
-        (["definisci", "che cosa s'intende", "che cosa si intende", "cosa s'intende"],
+        (["completa", "inserisci il termine"], "Completamento: inserisce i termini mancanti"),
+        (["indica se", "vero o falso", "vere o false"], "Riconoscimento: distingue vero e falso"),
+        (["osserva", "leggi la carta", "completa la tabella"], "Applicazione: legge i dati e li colloca"),
+        (["argomenta", "discuti", "commenta", "sostieni"], "Argomentazione: motiva la propria posizione"),
+        (["definisci", "che cosa s'intende", "che cosa si intende", "cosa s'intende",
+          "che cos'e", "che cose"],
          "Lessico: usa i termini tecnici in modo appropriato"),
         (["quale e la differenza", "qual e la differenza", "qual'e la differenza"],
          "Conoscenza: distingue e confronta"),
