@@ -30,7 +30,14 @@ public nonisolated struct ParsedExam: Equatable, Sendable {
     public var durationMinutes: Int?
 
     public var questions: [ExamQuestion] { sections.flatMap(\.questions) }
+    /// Totale scritto dal docente in fondo alla prova, se c'e'.
+    public var declaredTotalPoints: Int?
+
+    /// Il totale dichiarato vince su quello sommato: se la prova dice
+    /// "Punteggio totale: 30" e noi ne riconosciamo 9, il numero giusto e' 30
+    /// e il nostro riconoscimento e' incompleto.
     public var totalPoints: Int? {
+        if let declaredTotalPoints { return declaredTotalPoints }
         let points = questions.compactMap(\.points)
         return points.isEmpty ? nil : points.reduce(0, +)
     }
@@ -118,13 +125,17 @@ public nonisolated enum ExamParser {
                 if let extra = points(in: line), pending?.points == nil { pending?.points = extra }
                 let continuation = strippingPoints(line)
                 if !continuation.isEmpty {
-                    pending?.text += " " + continuation
+                    // Una riga di tabella o una voce vero/falso non si fonde
+                    // con la precedente: appiattendole si distrugge
+                    // l'esercizio, che sta proprio nella sua disposizione.
+                    pending?.text += (isStructural(line) ? "\n" : " ") + continuation
                 }
             }
         }
         closeSection()
 
-        let parsed = ParsedExam(sections: sections, durationMinutes: duration(in: text))
+        var parsed = ParsedExam(sections: sections, durationMinutes: duration(in: text))
+        parsed.declaredTotalPoints = declaredTotal(in: text)
         return parsed.isEmpty ? parseUnnumberedQuestions(text) : parsed
     }
 
@@ -161,7 +172,9 @@ public nonisolated enum ExamParser {
         var sections: [ExamSection] = []
         if let title { sections.append(ExamSection(title: title)) }
         sections.append(section)
-        return ParsedExam(sections: sections, durationMinutes: duration(in: text))
+        var parsed = ParsedExam(sections: sections, durationMinutes: duration(in: text))
+        parsed.declaredTotalPoints = declaredTotal(in: text)
+        return parsed
     }
 
     // MARK: - Riconoscitori
@@ -189,11 +202,16 @@ public nonisolated enum ExamParser {
         let digits = cleaned.prefix { $0.isNumber }
         guard !digits.isEmpty, digits.count <= 2 else { return nil }
 
-        let rest = cleaned.dropFirst(digits.count)
-        guard let separator = rest.first, separator == "." || separator == ")" else { return nil }
+        var rest = Substring(cleaned.dropFirst(digits.count))
+        // Il trattino e' separato da spazi: "3 - Nel 1906...". Senza spazio
+        // sarebbe un'espressione, non un quesito.
+        if rest.hasPrefix(" -") || rest.hasPrefix(" –") { rest = rest.dropFirst() }
+        guard let separator = rest.first, ".)-–:".contains(separator) else { return nil }
 
         let body = rest.dropFirst().trimmingCharacters(in: .whitespaces)
-        guard !body.isEmpty else { return nil }
+        // Il corpo comincia con una parola: cosi' "5 - 3 = 2" non diventa un
+        // quesito numero cinque.
+        guard let firstChar = body.first, firstChar.isLetter || "«\"'".contains(firstChar) else { return nil }
         return (String(digits), body)
     }
 
@@ -209,6 +227,22 @@ public nonisolated enum ExamParser {
         return body.isEmpty ? nil : body
     }
 
+    /// "Punteggio totale: 30", scritto in fondo alla prova.
+    static func declaredTotal(in text: String) -> Int? {
+        firstCapture(#"punteggio\s+(?:totale|massimo)\s*:?\s*(\d{1,3})"#, in: text).flatMap(Int.init)
+    }
+
+    /// Righe la cui disposizione fa parte dell'esercizio: righe di tabella,
+    /// voci di un elenco vero/falso, alternative di una scelta multipla.
+    static func isStructural(_ line: String) -> Bool {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard let first = trimmed.first else { return false }
+        if "|•▪".contains(first) { return true }
+        if first == "-" || first == "*" { return true }
+        // "La crosta oceanica e' piu' densa.  V  F"
+        return trimmed.hasSuffix(" V  F") || trimmed.hasSuffix("V/F")
+    }
+
     /// Righe che descrivono la prova invece di farne parte.
     static func isMetadata(_ line: String) -> Bool {
         let lower = line.lowercased()
@@ -220,7 +254,9 @@ public nonisolated enum ExamParser {
 
     /// "(punti 5)", "(5 punti)", "punti: 5"
     static func points(in line: String) -> Int? {
-        for pattern in [#"\((?:punt[io]\s*)(\d{1,3})\)"#, #"\((\d{1,3})\s*punt[io]\)"#, #"punt[io]\s*:\s*(\d{1,3})"#] {
+        for pattern in [#"\((?:punt[io]\s*)(\d{1,3})\)"#, #"\((\d{1,3})\s*punt[io]\)"#,
+                        #"punt[io]\s*:\s*(\d{1,3})"#, #"\[(\d{1,3})\s*p\.?\]"#,
+                        #"^\s*punt[io]\s+(\d{1,3})\s*$"#] {
             if let value = firstCapture(pattern, in: line) { return Int(value) }
         }
         return nil
@@ -232,6 +268,10 @@ public nonisolated enum ExamParser {
         if let minutes = firstCapture(#"(\d{1,3})\s*min\b"#, in: text) { return Int(minutes) }
         if let hours = firstCapture(#"(\d)\s*or[ae]\b"#, in: text), let h = Int(hours) { return h * 60 }
         let lower = text.lowercased()
+        // Prima le forme composte: "un'ora e mezza" contiene "un'ora", e
+        // sbagliare qui si trascina dentro il calcolo del tempo maggiorato.
+        if lower.contains("un'ora e mezza") || lower.contains("un ora e mezza") { return 90 }
+        if lower.contains("due ore e mezza") { return 150 }
         if lower.contains("un'ora") || lower.contains("un ora") { return 60 }
         if lower.contains("due ore") { return 120 }
         return nil
@@ -239,10 +279,15 @@ public nonisolated enum ExamParser {
 
     private static func strippingPoints(_ text: String) -> String {
         var result = text
-        for pattern in [#"\s*\((?:punt[io]\s*)\d{1,3}\)"#, #"\s*\(\d{1,3}\s*punt[io]\)"#, #"\s*punt[io]\s*:\s*\d{1,3}"#] {
+        for pattern in [#"\s*\((?:punt[io]\s*)\d{1,3}\)"#, #"\s*\(\d{1,3}\s*punt[io]\)"#,
+                        #"\s*punt[io]\s*:\s*\d{1,3}"#, #"\s*\[\d{1,3}\s*p\.?\]"#,
+                        #"^\s*punt[io]\s+\d{1,3}\s*$"#] {
             result = result.replacingOccurrences(of: pattern, with: "", options: [.regularExpression, .caseInsensitive])
         }
-        return result.trimmingCharacters(in: CharacterSet(charactersIn: "*_ ")).trimmingCharacters(in: .whitespaces)
+        // Non si tolgono i trattini bassi: "prende il nome di ______" e' un
+        // esercizio di completamento, e togliendoli sparisce lo spazio in cui
+        // l'alunno deve scrivere.
+        return result.trimmingCharacters(in: CharacterSet(charactersIn: "* ")).trimmingCharacters(in: .whitespaces)
     }
 
     private static func firstCapture(_ pattern: String, in text: String) -> String? {
