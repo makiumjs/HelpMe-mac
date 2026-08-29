@@ -5,7 +5,7 @@ Trasforma un testo curricolare nel materiale didattico personalizzato che
 serve a un alunno con DSA o ADHD, secondo il D.I. 182/2020.
 
 Progetto Xcode (`Helpme.xcodeproj`), SwiftUI, macOS 14+ / iPadOS 17+.
-**361 test.**
+**372 test.**
 
 ## Cosa fa
 
@@ -81,6 +81,13 @@ contenuti non si riscrivono: l'equipollenza sta nel mantenere gli obiettivi
 della classe (D.I. 182/2020 Art. 15), e i quesiti li ha già scelti il
 docente curricolare. La scomposizione in micro-step guidati resta al docente
 di sostegno, che è la persona che conosce l'alunno.
+
+Il **Glossario** è `.fromAnyText`: `GlossaryExtractor` trova i termini
+tecnici con l'analizzatore grammaticale di sistema, li pesa per frequenza,
+terminazione e rarità nel vocabolario italiano, e per ciascuno ripesca la
+frase in cui compare. La definizione e l'analogia le scrive il docente:
+dipendono da quello che l'alunno sa già. Chi sceglie un motore a mano torna
+a farsele scrivere.
 
 Il primo formato portato fuori dall'IA è la **Scheda Sintesi PDP**, e non per risparmiare: il
 documento riepiloga misure deliberate dal Consiglio di Classe e finisce nel

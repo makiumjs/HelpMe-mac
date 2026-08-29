@@ -40,6 +40,8 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
         /// Serve un testo con una struttura riconoscibile — una verifica con
         /// quesiti numerati. Se il testo non ce l'ha, l'app lo dice.
         case fromStructuredText
+        /// Basta un testo qualsiasi, senza struttura particolare.
+        case fromAnyText
         /// Per ora richiede un modello.
         case none
     }
@@ -48,6 +50,7 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
         switch self {
         case .pdpSummary:       return .always
         case .equipollenteExam: return .fromStructuredText
+        case .glossary:         return .fromAnyText
         default:                return .none
         }
     }

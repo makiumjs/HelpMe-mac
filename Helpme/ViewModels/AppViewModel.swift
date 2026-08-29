@@ -144,6 +144,10 @@ public final class AppViewModel {
             return "Questo formato non usa l'IA: si compila dalle misure registrate nella scheda dell'alunno, "
                  + "con le diciture della normativa. Niente esce dal Mac."
         }
+        if selectedFormat.localComposition == .fromAnyText, engineOverride == nil {
+            return "Estrae i termini dal testo senza IA, con la frase in cui compaiono. "
+                 + "Le definizioni le scrivi tu; per farle scrivere all'IA, scegli un motore a mano."
+        }
         if selectedFormat.localComposition == .fromStructuredText {
             return "Incolla la verifica della classe con i quesiti numerati: l'app la ricostruisce senza IA — "
                  + "tempo maggiorato, strumenti concessi, spazio per scrivere e griglia. "
@@ -160,7 +164,7 @@ public final class AppViewModel {
         switch selectedFormat.localComposition {
         case .always:
             return true
-        case .fromStructuredText:
+        case .fromStructuredText, .fromAnyText:
             // Non si analizza il testo qui: verrebbe rifatto a ogni battuta.
             // Se poi la struttura non c'è, la generazione lo dice.
             return !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -494,6 +498,14 @@ public final class AppViewModel {
             return
         }
 
+        // Il glossario si estrae dal testo senza modello. Se però il docente
+        // ha scelto un motore a mano, vuol dire che vuole anche le
+        // definizioni scritte: gliele si lascia chiedere.
+        if selectedFormat.localComposition == .fromAnyText, engineOverride == nil {
+            composeGlossary(for: student)
+            return
+        }
+
         // Se il testo è davvero una verifica, la equipollente si ricostruisce
         // senza modello: i contenuti sono già quelli giusti, li ha scelti il
         // docente curricolare, e l'equipollenza sta nel mantenerli.
@@ -550,6 +562,17 @@ public final class AppViewModel {
         }
 
         isGenerating = false
+    }
+
+    private func composeGlossary(for student: StudentProfile) {
+        errorMessage = nil
+        let terms = GlossaryExtractor.extract(from: sourceText)
+        generatedContent = GlossaryComposer.compose(terms: terms, interest: student.interest)
+
+        statusMessage = terms.isEmpty
+            ? nil
+            : "\(Plural.it(terms.count, "termine trovato", "termini trovati")) senza IA. "
+              + "Togli quelli che non servono e scrivi le definizioni."
     }
 
     private func composeEquipollente(_ exam: ParsedExam, for student: StudentProfile) {
