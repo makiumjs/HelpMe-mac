@@ -55,6 +55,32 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
         }
     }
 
+    /// Il prompt di sistema, adattato a cosa il motore sa fare.
+    ///
+    /// `tablesSupported` esiste per un difetto misurato il 29 agosto 2026: il
+    /// modello integrato nel Mac, arrivato a una tabella markdown, comincia a
+    /// incolonnare le celle con spazi e non smette più, finché esaurisce la
+    /// finestra di contesto e la generazione fallisce. La verifica
+    /// equipollente falliva così in 54 secondi e il formulario in 57 —
+    /// **gli unici due formati che chiedevano una tabella**. Chiedendo gli
+    /// stessi contenuti come elenco riescono entrambi in 9 secondi, con
+    /// l'uscita pulita.
+    ///
+    /// Gemini le tabelle le fa bene, e nel documento Word diventano tabelle
+    /// vere con l'intestazione ripetuta: quindi si rinuncia solo dove serve.
+    public func systemPrompt(tablesSupported: Bool) -> String {
+        let template = systemPromptTemplate
+        guard !tablesSupported else { return template }
+
+        return template
+            .replacingOccurrences(
+                of: "come TABELLA markdown con le barre verticali, colonne: Indicatore | Descrittore | Punti.",
+                with: "come elenco puntato: una riga per indicatore, nella forma \"- Indicatore — descrittore — punti\".")
+            .replacingOccurrences(
+                of: "Formatta con tabelle a 2 colonne, schemi a punti elenco sintetici e formule chiare.",
+                with: "Formatta con elenchi puntati sintetici e formule chiare. Non usare tabelle.")
+    }
+
     public var systemPromptTemplate: String {
         switch self {
         case .equipollenteExam:

@@ -469,7 +469,7 @@ public final class AppViewModel {
         errorMessage = nil
         statusMessage = nil
 
-        let prompt = buildPrompt(for: student)
+        let prompt = buildPrompt(for: student, engine: engine)
         let studentName = student.name
 
         do {
@@ -522,11 +522,21 @@ public final class AppViewModel {
 
     /// Assembla il prompt. I dati dell'alunno passano dal pseudonimizzatore:
     /// nome e riferimenti diagnostici non lasciano il dispositivo.
-    func buildPrompt(for student: StudentProfile) -> String {
-        let template = selectedFormat.systemPromptTemplate
+    func buildPrompt(for student: StudentProfile, engine: AIEngine? = nil) -> String {
+        // Il modello integrato non regge le tabelle markdown: gli si chiede
+        // la stessa cosa in forma di elenco. Vedi DidacticFormat.systemPrompt.
+        let usesCloud = (engine ?? activeEngine) == .gemini
+        let template = selectedFormat.systemPrompt(tablesSupported: usesCloud)
             .replacingOccurrences(of: "{INTEREST}", with: student.interest)
 
-        let ragChunks = semanticSearch.searchRelevantContext(query: sourceText, topK: 2)
+        // Quando il testo di partenza e' gia' sostanzioso, i frammenti
+        // ripescati vengono quasi sempre dallo stesso documento: si
+        // spedirebbe due volte la stessa cosa, proprio dove lo spazio manca.
+        // Il recupero documentale serve a integrare un testo breve, non a
+        // ripetere un testo lungo.
+        let ragChunks = sourceText.count > 1500
+            ? []
+            : semanticSearch.searchRelevantContext(query: sourceText, topK: 2)
         let ragContext = ragChunks.isEmpty ? "" : """
 
         [CONTESTO DOCUMENTALE ESTRATTO DAI MATERIALI INDICIZZATI]:

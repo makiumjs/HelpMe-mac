@@ -5,7 +5,7 @@ Trasforma un testo curricolare nel materiale didattico personalizzato che
 serve a un alunno con DSA o ADHD, secondo il D.I. 182/2020.
 
 Progetto Xcode (`Helpme.xcodeproj`), SwiftUI, macOS 14+ / iPadOS 17+.
-**265 test.**
+**271 test.**
 
 ## Cosa fa
 

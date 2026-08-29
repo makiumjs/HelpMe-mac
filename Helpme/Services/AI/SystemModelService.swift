@@ -57,10 +57,16 @@ public final class SystemModelService: LLMInferenceService, @unchecked Sendable 
                 onToken(delta)
             }
 
-            guard !emitted.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                throw SystemModelError.emptyResponse
-            }
-            return emitted
+            // Questo modello, quando incontra qualcosa che non sa chiudere,
+            // riempie la coda di spazi: una volta misurati quindicimila
+            // caratteri di spazi dopo ottocento di contenuto. Nel documento
+            // finirebbero come pagine bianche.
+            let cleaned = emitted.replacingOccurrences(
+                of: "[ \t]+$", with: "", options: [.regularExpression]
+            ).trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard !cleaned.isEmpty else { throw SystemModelError.emptyResponse }
+            return cleaned
 
         } catch let error as LanguageModelSession.GenerationError {
             switch error {
