@@ -139,11 +139,24 @@ final class StudentProfileTests: XCTestCase {
     /// generazione deve spegnersi e spiegare perché, non fallire al click.
     func testWithoutAnyEngineTheTeacherIsToldWhyBeforeTrying() throws {
         let viewModel = AppViewModel(modelContext: makeContext())
-        viewModel.selectedFormat = .equipollenteExam   // formato che passa da un motore
+        viewModel.selectedFormat = .clearExplanation   // riscrivere un testo richiede un modello
         viewModel.systemModelStatus = .appleIntelligenceOff
 
         XCTAssertFalse(viewModel.canGenerate)
         let message = try XCTUnwrap(viewModel.engineRationale)
         XCTAssertTrue(message.contains("Gemini"), "Va detto come sbloccarsi: \(message)")
+    }
+
+    /// Ma la verifica equipollente, senza nessun motore, si costruisce lo
+    /// stesso: i quesiti sono già quelli del docente curricolare.
+    func testTheEquipollenteExamNoLongerNeedsAnEngineAtAll() throws {
+        let viewModel = AppViewModel(modelContext: makeContext())
+        viewModel.selectedFormat = .equipollenteExam
+        viewModel.systemModelStatus = .appleIntelligenceOff
+        viewModel.sourceText = "1. Prima domanda\n2. Seconda domanda"
+
+        XCTAssertTrue(viewModel.canGenerate)
+        let message = try XCTUnwrap(viewModel.engineRationale)
+        XCTAssertTrue(message.contains("senza IA"), message)
     }
 }

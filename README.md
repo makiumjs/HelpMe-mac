@@ -5,7 +5,7 @@ Trasforma un testo curricolare nel materiale didattico personalizzato che
 serve a un alunno con DSA o ADHD, secondo il D.I. 182/2020.
 
 Progetto Xcode (`Helpme.xcodeproj`), SwiftUI, macOS 14+ / iPadOS 17+.
-**291 test.**
+**316 test.**
 
 ## Cosa fa
 
@@ -68,8 +68,21 @@ ufficiale. Su 9.500 righe di sorgente, l'IA ne occupa 500. Lettore, karaoke,
 sillabazione, mappa navigabile, quiz interattivo, export Word, indice
 documentale e registro non la toccano.
 
-Un formato può dichiarare `isComposedLocally` e prodursi senza nessun
-modello. Il primo è la **Scheda Sintesi PDP**, e non per risparmiare: il
+Un formato dichiara in `localComposition` come si produce senza modello:
+`.always` (basta la scheda dell'alunno), `.fromStructuredText` (serve un
+testo con una struttura riconoscibile), `.none` (per ora serve un modello).
+
+La **Verifica Equipollente** è `.fromStructuredText`: `ExamParser` riconosce
+parti, quesiti numerati, punteggi e durata nella verifica della classe, e
+`EquipollenteComposer` ne ricostruisce la versione equipollente — tempo
+maggiorato del 30%, strumenti concessi sul foglio dell'alunno, spazio per
+scrivere proporzionato al punteggio, griglia come tabella Word vera. I
+contenuti non si riscrivono: l'equipollenza sta nel mantenere gli obiettivi
+della classe (D.I. 182/2020 Art. 15), e i quesiti li ha già scelti il
+docente curricolare. La scomposizione in micro-step guidati resta al docente
+di sostegno, che è la persona che conosce l'alunno.
+
+Il primo formato portato fuori dall'IA è la **Scheda Sintesi PDP**, e non per risparmiare: il
 documento riepiloga misure deliberate dal Consiglio di Classe e finisce nel
 fascicolo dell'alunno, quindi il suo valore sta nel riportare *esattamente*
 le parole della normativa — cosa che un modello, parafrasandole un po'

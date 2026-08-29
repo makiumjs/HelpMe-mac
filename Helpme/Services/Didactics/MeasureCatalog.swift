@@ -86,6 +86,22 @@ public nonisolated enum MeasureCatalog {
 
     public static var all: [DidacticMeasure] { compensative + dispensative + assessment }
 
+    /// Le misure che ha senso elencare sul foglio dell'alunno, perche' sono
+    /// cose che puo' prendere in mano mentre svolge la prova.
+    ///
+    /// Le altre riguardano i docenti. Scrivere "dispensato dalla lettura ad
+    /// alta voce" sul foglio di chi la sta svolgendo non gli serve a niente e
+    /// lo marchia davanti ai compagni che glielo vedono sul banco.
+    public static let usableDuringTest: Set<String> = [
+        "comp.calcolatrice",
+        "comp.formulari",
+        "comp.mappe",
+        "comp.tavola-pitagorica",
+        "comp.dizionario",
+        "comp.computer-verifiche",
+        "comp.sintesi-vocale"
+    ]
+
     public static func measure(id: String) -> DidacticMeasure? {
         all.first { $0.id == id }
     }

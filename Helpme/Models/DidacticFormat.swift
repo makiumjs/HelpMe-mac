@@ -33,6 +33,25 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
         }
     }
     
+    /// Come si produce questo formato senza modello linguistico.
+    public enum LocalComposition: Sendable {
+        /// Basta la scheda dell'alunno: si compone sempre.
+        case always
+        /// Serve un testo con una struttura riconoscibile — una verifica con
+        /// quesiti numerati. Se il testo non ce l'ha, l'app lo dice.
+        case fromStructuredText
+        /// Per ora richiede un modello.
+        case none
+    }
+
+    public var localComposition: LocalComposition {
+        switch self {
+        case .pdpSummary:       return .always
+        case .equipollenteExam: return .fromStructuredText
+        default:                return .none
+        }
+    }
+
     /// Vero per i formati che l'app produce da sé, senza nessun modello.
     ///
     /// Non è un ripiego per chi non ha una chiave: è la forma giusta per
@@ -40,7 +59,7 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
     /// Consiglio di Classe, e il suo valore sta nel riportare *esattamente*
     /// le parole della normativa — cosa che un modello, parafrasandole un po'
     /// diverse a ogni generazione, peggiorava senza aggiungere niente.
-    public var isComposedLocally: Bool { self == .pdpSummary }
+    public var isComposedLocally: Bool { localComposition == .always }
 
     /// Vero per i formati che il modello integrato non regge.
     ///

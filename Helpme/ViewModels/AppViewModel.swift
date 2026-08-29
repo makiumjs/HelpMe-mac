@@ -144,13 +144,29 @@ public final class AppViewModel {
             return "Questo formato non usa l'IA: si compila dalle misure registrate nella scheda dell'alunno, "
                  + "con le diciture della normativa. Niente esce dal Mac."
         }
+        if selectedFormat.localComposition == .fromStructuredText {
+            return "Incolla la verifica della classe con i quesiti numerati: l'app la ricostruisce senza IA — "
+                 + "tempo maggiorato, strumenti concessi, spazio per scrivere e griglia. "
+                 + "La scomposizione guidata la aggiungi tu."
+        }
         guard let engine = activeEngine else { return engineSelector.blockingMessage }
         return engineSelector.rationale(for: selectedFormat, engine: engine)
     }
 
     public var canGenerate: Bool {
         guard LicenseGate.canGenerate(licenseState) else { return false }
-        return selectedFormat.isComposedLocally || activeEngine != nil
+        if activeEngine != nil { return true }
+
+        switch selectedFormat.localComposition {
+        case .always:
+            return true
+        case .fromStructuredText:
+            // Non si analizza il testo qui: verrebbe rifatto a ogni battuta.
+            // Se poi la struttura non c'è, la generazione lo dice.
+            return !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .none:
+            return false
+        }
     }
 
     // MARK: - Editor
@@ -478,6 +494,23 @@ public final class AppViewModel {
             return
         }
 
+        // Se il testo è davvero una verifica, la equipollente si ricostruisce
+        // senza modello: i contenuti sono già quelli giusti, li ha scelti il
+        // docente curricolare, e l'equipollenza sta nel mantenerli.
+        if selectedFormat.localComposition == .fromStructuredText {
+            let exam = ExamParser.parse(sourceText)
+            if !exam.isEmpty {
+                composeEquipollente(exam, for: student)
+                return
+            }
+            guard activeEngine != nil else {
+                errorMessage = "Non ho riconosciuto quesiti numerati in questo testo, quindi non posso "
+                    + "ricostruirlo da solo. Incolla la verifica della classe con i quesiti numerati "
+                    + "(1., 2., 3.), oppure configura una API key per farla scrivere all'IA."
+                return
+            }
+        }
+
         guard let engine = activeEngine else {
             errorMessage = engineSelector.blockingMessage
             return
@@ -517,6 +550,22 @@ public final class AppViewModel {
         }
 
         isGenerating = false
+    }
+
+    private func composeEquipollente(_ exam: ParsedExam, for student: StudentProfile) {
+        errorMessage = nil
+        generatedContent = EquipollenteComposer.compose(.init(
+            studentName: student.name,
+            classInfo: student.classInfo,
+            programTitle: student.programType.localizedTitle,
+            compensatory: student.compensatoryMeasures,
+            dispensatory: student.dispensatoryMeasures,
+            exam: exam
+        ))
+
+        let quesiti = Plural.it(exam.questions.count, "quesito", "quesiti")
+        statusMessage = "Ricostruita senza IA da \(quesiti). Aggiungi tu la scomposizione guidata "
+            + "dove serve: è la parte che richiede di conoscere l'alunno."
     }
 
     /// Compone il materiale senza modello linguistico.
