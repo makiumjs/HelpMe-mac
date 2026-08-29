@@ -11,6 +11,7 @@ public final class TeacherViewModel {
     public var showGloDiaryModal: Bool = false
     public var showSchoolHeaderModal: Bool = false
     public var showMeasuresModal: Bool = false
+    public var showQuizBuilder: Bool = false
 
     // Esportazione .docx tramite pannello "Salva con nome"
     public var showDocxExporter: Bool = false

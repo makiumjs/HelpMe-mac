@@ -5,7 +5,7 @@ Trasforma un testo curricolare nel materiale didattico personalizzato che
 serve a un alunno con DSA o ADHD, secondo il D.I. 182/2020.
 
 Progetto Xcode (`Helpme.xcodeproj`), SwiftUI, macOS 14+ / iPadOS 17+.
-**372 test.**
+**381 test.**
 
 ## Cosa fa
 
@@ -88,6 +88,12 @@ terminazione e rarità nel vocabolario italiano, e per ciascuno ripesca la
 frase in cui compare. La definizione e l'analogia le scrive il docente:
 dipendono da quello che l'alunno sa già. Chi sceglie un motore a mano torna
 a farsele scrivere.
+
+Il **Quiz** non si deriva da un testo: si scrive. `QuizBuilderModal` lo fa
+scrivere al docente e `QuizComposer` produce il markup che il lettore si
+aspetta — è l'inverso esatto di `QuizParser`, e un test verifica che
+scrivere e rileggere restituisca le stesse domande. Riaprendo l'editor si
+ritrova il quiz che c'è, per correggerlo invece di riscriverlo.
 
 Il primo formato portato fuori dall'IA è la **Scheda Sintesi PDP**, e non per risparmiare: il
 documento riepiloga misure deliberate dal Consiglio di Classe e finisce nel

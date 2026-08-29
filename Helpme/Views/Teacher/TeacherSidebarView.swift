@@ -136,6 +136,13 @@ public struct TeacherSidebarView: View {
                 .disabled(teacherViewModel.appViewModel.selectedStudent == nil)
                 .help("Strumenti compensativi e misure dispensative, dal catalogo normativo")
 
+                Button(action: { teacherViewModel.showQuizBuilder = true }) {
+                    Label("Scrivi il quiz", systemImage: "checkmark.bubble")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.bordered)
+                .help("Scrive un quiz cliccabile senza passare dall'IA")
+
                 Button(action: { teacherViewModel.showGloDiaryModal = true }) {
                     Label("Registro GLO (4 Dimensioni)", systemImage: "book.pages.fill")
                         .font(.system(size: 12, weight: .medium, design: .rounded))

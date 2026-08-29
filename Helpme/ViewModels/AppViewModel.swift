@@ -564,6 +564,16 @@ public final class AppViewModel {
         isGenerating = false
     }
 
+    /// Mette nel materiale il quiz scritto a mano dal docente.
+    public func applyQuiz(_ questions: [QuizQuestion]) {
+        guard !questions.isEmpty else { return }
+        generatedContent = QuizComposer.compose(questions)
+        selectedFormat = .interactiveQuiz
+        errorMessage = nil
+        statusMessage = "\(Plural.it(questions.count, "domanda pronta", "domande pronte")) senza IA. "
+            + "Lo studente le trova nella sua scheda, cliccabili."
+    }
+
     private func composeGlossary(for student: StudentProfile) {
         errorMessage = nil
         let terms = GlossaryExtractor.extract(from: sourceText)
