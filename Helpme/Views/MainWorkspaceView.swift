@@ -6,6 +6,7 @@ public struct MainWorkspaceView: View {
     @State private var teacherViewModel: TeacherViewModel
     @State private var studentViewModel: StudentReaderViewModel
     @State private var selectedTab: WorkspaceTab = .editor
+    @State private var justCopied = false
     @State private var showSettingsPopover: Bool = false
     @State private var showDocumentImporter: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -307,14 +308,26 @@ public struct MainWorkspaceView: View {
                     
                     Spacer()
                     
+                    // Copiare negli appunti non si vede: senza un riscontro
+                    // l'unico modo di sapere se ha funzionato e' andare a
+                    // incollare da qualche parte.
                     Button(action: {
                         Clipboard.copy(appViewModel.generatedContent)
+                        justCopied = true
+                        Task {
+                            try? await Task.sleep(for: .seconds(2))
+                            justCopied = false
+                        }
                     }) {
-                        Label("Copia", systemImage: "doc.on.doc")
+                        Label(justCopied ? "Copiato" : "Copia",
+                              systemImage: justCopied ? "checkmark" : "doc.on.doc")
                             .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundStyle(justCopied ? Color.institutional : .primary)
                     }
                     .buttonStyle(.bordered)
                     .disabled(appViewModel.generatedContent.isEmpty)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: justCopied)
+                    .accessibilityLabel(justCopied ? "Copiato negli appunti" : "Copia il materiale negli appunti")
                 }
                 
                 TextEditor(text: $appViewModel.generatedContent)

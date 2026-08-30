@@ -19,7 +19,44 @@ public final class AppViewModel {
     public var schoolInfo: SchoolInfo
 
     public var selectedStudent: StudentProfile? {
-        didSet { if selectedStudent !== oldValue { generatedContent = "" } }
+        didSet {
+            guard selectedStudent !== oldValue else { return }
+            // Il lavoro dell'alunno che si lascia non si butta: si mette via
+            // sulla sua scheda, e si riprende quello dell'alunno che si apre.
+            //
+            // Si salva **solo** se un alunno precedente c'era davvero. Con
+            // @Observable questo osservatore scatta anche dentro
+            // l'inizializzatore, dove oldValue e' nil: ricadendo in quel caso
+            // sull'alunno appena selezionato gli si sovrascriveva il
+            // materiale salvato con lo stato vuoto in memoria, cioe' si
+            // cancellava il lavoro a ogni avvio.
+            if let previous = oldValue { store(into: previous) }
+            restoreWork(of: selectedStudent)
+        }
+    }
+
+    /// Mette via testo di partenza e materiale sulla scheda dell'alunno.
+    ///
+    /// Va chiamata quando l'app perde il primo piano e dopo ogni
+    /// generazione: prima il lavoro viveva solo in memoria e ogni chiusura
+    /// dell'app lo cancellava, senza che niente lo avvertisse.
+    public func rememberWork() {
+        guard let student = selectedStudent else { return }
+        store(into: student)
+    }
+
+    private func store(into student: StudentProfile) {
+        guard student.lastSourceText != sourceText
+                || student.lastGeneratedContent != generatedContent else { return }
+
+        student.lastSourceText = sourceText
+        student.lastGeneratedContent = generatedContent
+        persist()
+    }
+
+    private func restoreWork(of student: StudentProfile?) {
+        sourceText = student?.lastSourceText ?? ""
+        generatedContent = student?.lastGeneratedContent ?? ""
     }
 
     // MARK: - Accessibilità
@@ -231,6 +268,8 @@ public final class AppViewModel {
 
         reloadFromStore()
         self.selectedStudent = students.first
+        // Le property observer non scattano dentro l'inizializzatore.
+        restoreWork(of: self.selectedStudent)
     }
 
     // MARK: - Lettura dall'archivio
@@ -486,6 +525,7 @@ public final class AppViewModel {
         // nella scheda dell'alunno.
         if selectedFormat.isComposedLocally {
             composeLocally(for: student)
+            rememberWork()
             return
         }
 
@@ -503,6 +543,7 @@ public final class AppViewModel {
         // definizioni scritte: gliele si lascia chiedere.
         if selectedFormat.localComposition == .fromAnyText, engineOverride == nil {
             composeGlossary(for: student)
+            rememberWork()
             return
         }
 
@@ -513,7 +554,8 @@ public final class AppViewModel {
             let exam = ExamParser.parse(sourceText)
             if !exam.isEmpty {
                 composeEquipollente(exam, for: student)
-                return
+                rememberWork()
+            return
             }
             guard activeEngine != nil else {
                 errorMessage = "Non ho riconosciuto quesiti numerati in questo testo, quindi non posso "
@@ -557,6 +599,7 @@ public final class AppViewModel {
             }
             // Il testo definitivo sostituisce quello accumulato in streaming.
             generatedContent = StudentPseudonymizer.restoreIdentity(in: result, name: studentName)
+            rememberWork()
         } catch {
             errorMessage = failureMessage(for: error)
         }
@@ -569,6 +612,7 @@ public final class AppViewModel {
         guard !questions.isEmpty else { return }
         generatedContent = QuizComposer.compose(questions)
         selectedFormat = .interactiveQuiz
+        rememberWork()
         errorMessage = nil
         statusMessage = "\(Plural.it(questions.count, "domanda pronta", "domande pronte")) senza IA. "
             + "Lo studente le trova nella sua scheda, cliccabili."

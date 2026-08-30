@@ -38,7 +38,13 @@ struct HelpmeApp: App {
             // Un'app lasciata aperta sulla cattedra da un giorno all'altro
             // si crederebbe ancora licenziata: lo stato si ricalcola quando
             // torna in primo piano.
-            if phase == .active { appViewModel.refreshLicenseState() }
+            if phase == .active {
+                appViewModel.refreshLicenseState()
+            } else {
+                // L'app sta per passare in secondo piano o chiudersi: il
+                // lavoro non deve restare solo in memoria.
+                appViewModel.rememberWork()
+            }
         }
         #if os(macOS)
         .windowStyle(.titleBar)

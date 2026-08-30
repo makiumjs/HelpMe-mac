@@ -41,6 +41,15 @@ public final class StudentProfile {
     public var dispensatoryMeasures: [String]
     public var createdAt: Date
 
+    /// Il lavoro in corso su questo alunno.
+    ///
+    /// Vivevano solo in memoria: il docente generava il materiale, chiudeva
+    /// l'app, e il lavoro spariva senza che niente lo avvertisse. Ora seguono
+    /// la scheda, quindi sopravvivono alla chiusura e tornano quando si
+    /// riseleziona l'alunno.
+    public var lastSourceText: String = ""
+    public var lastGeneratedContent: String = ""
+
     public var programType: ProgramType {
         get { ProgramType(rawValue: programTypeRaw) ?? .minimi }
         set { programTypeRaw = newValue.rawValue }
@@ -66,7 +75,9 @@ public final class StudentProfile {
             "disp.lettura-alta-voce",
             "disp.dettatura"
         ],
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        lastSourceText: String = "",
+        lastGeneratedContent: String = ""
     ) {
         self.id = id
         self.name = name
@@ -77,5 +88,7 @@ public final class StudentProfile {
         self.compensatoryMeasures = compensatoryMeasures
         self.dispensatoryMeasures = dispensatoryMeasures
         self.createdAt = createdAt
+        self.lastSourceText = lastSourceText
+        self.lastGeneratedContent = lastGeneratedContent
     }
 }
