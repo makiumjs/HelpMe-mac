@@ -221,3 +221,37 @@ public nonisolated enum GlossaryComposer {
 extension String {
     var capitalizedFirstLetter: String { prefix(1).uppercased() + dropFirst() }
 }
+
+/// Rilegge un glossario compilato dal docente.
+///
+/// Serve alla spiegazione semplificata: le parole che il docente ha gia'
+/// spiegato per quell'alunno si riusano, invece di farle spiegare di nuovo a
+/// qualcun altro con parole diverse.
+public nonisolated enum GlossaryReader {
+
+    private static let definitionMarker = "**Che cosa vuol dire:**"
+
+    public static func definitions(from markdown: String) -> [String: String] {
+        var result: [String: String] = [:]
+        var currentTerm: String?
+
+        for rawLine in markdown.components(separatedBy: .newlines) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+
+            if line.hasPrefix("### ") {
+                currentTerm = String(line.dropFirst(4)).trimmingCharacters(in: .whitespaces)
+                continue
+            }
+
+            guard let term = currentTerm, line.hasPrefix(definitionMarker) else { continue }
+            let definition = String(line.dropFirst(definitionMarker.count))
+                // Le caselle non compilate sono file di trattini bassi.
+                .replacingOccurrences(of: "_", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if definition.count >= 3 { result[term.lowercased()] = definition }
+            currentTerm = nil
+        }
+        return result
+    }
+}

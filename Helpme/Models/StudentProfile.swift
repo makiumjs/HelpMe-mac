@@ -50,6 +50,13 @@ public final class StudentProfile {
     public var lastSourceText: String = ""
     public var lastGeneratedContent: String = ""
 
+    /// L'ultimo glossario compilato per questo alunno.
+    ///
+    /// Sta a parte dal materiale in corso perche' serve dopo: la spiegazione
+    /// semplificata riusa le parole che il docente ha gia' scelto per lui,
+    /// invece di farle riscrivere da capo con parole diverse.
+    public var personalGlossary: String = ""
+
     public var programType: ProgramType {
         get { ProgramType(rawValue: programTypeRaw) ?? .minimi }
         set { programTypeRaw = newValue.rawValue }
@@ -77,7 +84,8 @@ public final class StudentProfile {
         ],
         createdAt: Date = Date(),
         lastSourceText: String = "",
-        lastGeneratedContent: String = ""
+        lastGeneratedContent: String = "",
+        personalGlossary: String = ""
     ) {
         self.id = id
         self.name = name
@@ -90,5 +98,6 @@ public final class StudentProfile {
         self.createdAt = createdAt
         self.lastSourceText = lastSourceText
         self.lastGeneratedContent = lastGeneratedContent
+        self.personalGlossary = personalGlossary
     }
 }

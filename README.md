@@ -5,7 +5,7 @@ Trasforma un testo curricolare nel materiale didattico personalizzato che
 serve a un alunno con DSA o ADHD, secondo il D.I. 182/2020.
 
 Progetto Xcode (`Helpme.xcodeproj`), SwiftUI, macOS 14+ / iPadOS 17+.
-**412 test.**
+**430 test.**
 
 ## Cosa fa
 
@@ -88,6 +88,19 @@ terminazione e rarità nel vocabolario italiano, e per ciascuno ripesca la
 frase in cui compare. La definizione e l'analogia le scrive il docente:
 dipendono da quello che l'alunno sa già. Chi sceglie un motore a mano torna
 a farsele scrivere.
+
+La **Spiegazione Semplificata** è il formato dove l'IA vince davvero, e
+l'app lo dice invece di fingere. Senza modello fa due cose oneste: rende il
+testo leggibile senza cambiare una parola — una frase per riga, elenchi al
+posto delle enumerazioni annunciate — e misura dov'è difficile con l'indice
+**Gulpease**, la formula tarata sull'italiano, segnalando frasi lunghe,
+subordinate annidate, forme passive e parole rare. Riscrivere le frasi resta
+al docente, e il documento lo scrive in fondo.
+
+`ClearTextComposer` riusa il **glossario già compilato per quell'alunno**:
+dove il testo usa un termine che il docente ha già spiegato, ripropone le
+sue parole. Il lavoro fatto una volta si riusa, e la semplificazione parla
+con il lessico scelto per quello studente.
 
 Il **Formulario da banco** è `.fromAnyText`: `DeskCardExtractor` riconosce
 formule (un uguale fra due espressioni), definizioni ("X è Y", "prende il

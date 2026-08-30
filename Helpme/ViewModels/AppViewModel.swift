@@ -51,6 +51,13 @@ public final class AppViewModel {
 
         student.lastSourceText = sourceText
         student.lastGeneratedContent = generatedContent
+
+        // Il glossario si conserva a parte: la spiegazione semplificata lo
+        // riusa piu' tardi, quando il materiale in corso sara' un altro.
+        if selectedFormat == .glossary,
+           !GlossaryReader.definitions(from: generatedContent).isEmpty {
+            student.personalGlossary = generatedContent
+        }
         persist()
     }
 
@@ -182,11 +189,22 @@ public final class AppViewModel {
                  + "con le diciture della normativa. Niente esce dal Mac."
         }
         if selectedFormat.localComposition == .fromAnyText, engineOverride == nil {
-            return selectedFormat == .deskCheatSheet
-                ? "Cerca formule, definizioni e dati nel testo, senza IA. Poi taglia: "
-                  + "un formulario da banco vale se è corto."
-                : "Estrae i termini dal testo senza IA, con la frase in cui compaiono. "
-                  + "Le definizioni le scrivi tu; per farle scrivere all'IA, scegli un motore a mano."
+            switch selectedFormat {
+            case .deskCheatSheet:
+                return "Cerca formule, definizioni e dati nel testo, senza IA. Poi taglia: "
+                     + "un formulario da banco vale se è corto."
+            case .clearExplanation:
+                // Detto senza girarci intorno: senza IA questo formato rende
+                // il testo leggibile e dice dov'è difficile, ma non
+                // semplifica il lessico. Promettere la semplificazione e
+                // consegnare una riformattazione sarebbe peggio che dirlo.
+                return "Senza IA rende il testo leggibile e misura dov'è difficile, "
+                     + "ma non riscrive le frasi: quello richiede di sapere quali parole "
+                     + "l'alunno ha già. Con una API key le riscrive il modello."
+            default:
+                return "Estrae i termini dal testo senza IA, con la frase in cui compaiono. "
+                     + "Le definizioni le scrivi tu; per farle scrivere all'IA, scegli un motore a mano."
+            }
         }
         if selectedFormat.localComposition == .fromStructuredText {
             return "Incolla la verifica della classe con i quesiti numerati: l'app la ricostruisce senza IA — "
@@ -643,6 +661,14 @@ public final class AppViewModel {
                 ? nil
                 : "\(Plural.it(terms.count, "termine trovato", "termini trovati")) senza IA. "
                   + "Togli quelli che non servono e scrivi le definizioni."
+
+        case .clearExplanation:
+            let glossario = GlossaryReader.definitions(from: student.personalGlossary)
+            generatedContent = ClearTextComposer.compose(sourceText, glossary: glossario)
+            let report = ReadabilityAnalyzer.analyze(sourceText)
+            statusMessage = "Indice Gulpease \(report.gulpease)/100. "
+                + "\(Plural.it(report.sentencesNeedingWork.count, "frase da riscrivere", "frasi da riscrivere")). "
+                + "Il testo e' stato reso leggibile, non semplificato: quello resta a te."
 
         case .deskCheatSheet:
             let entries = DeskCardExtractor.extract(from: sourceText)

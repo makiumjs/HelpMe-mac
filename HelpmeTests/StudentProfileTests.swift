@@ -139,7 +139,7 @@ final class StudentProfileTests: XCTestCase {
     /// generazione deve spegnersi e spiegare perché, non fallire al click.
     func testWithoutAnyEngineTheTeacherIsToldWhyBeforeTrying() throws {
         let viewModel = AppViewModel(modelContext: makeContext())
-        viewModel.selectedFormat = .clearExplanation   // riscrivere un testo richiede un modello
+        viewModel.selectedFormat = .interactiveQuiz   // generarlo richiede ancora un modello
         viewModel.systemModelStatus = .appleIntelligenceOff
 
         XCTAssertFalse(viewModel.canGenerate)

@@ -50,7 +50,7 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
         switch self {
         case .pdpSummary:       return .always
         case .equipollenteExam: return .fromStructuredText
-        case .glossary, .deskCheatSheet: return .fromAnyText
+        case .glossary, .deskCheatSheet, .clearExplanation: return .fromAnyText
         default:                return .none
         }
     }
