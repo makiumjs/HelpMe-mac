@@ -12,6 +12,13 @@ public struct TeacherSidebarView: View {
     }
     
     public var body: some View {
+        ScrollView {
+            sidebarContent
+        }
+        .scrollBounceBehavior(.basedOnSize)
+    }
+
+    private var sidebarContent: some View {
         VStack(alignment: .leading, spacing: 18) {
             // Header Sezione Alunni
             HStack {
@@ -83,9 +90,12 @@ public struct TeacherSidebarView: View {
                     .font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundColor(Color.institutional)
                 
-                // Selezione gestita a mano invece che con List(selection:):
-                // quella variante non esiste su iPadOS con un valore non opzionale.
-                List {
+                // Una pila e non una `List`: i formati sono sette e non
+                // cambiano, quindi la lista aveva un'altezza fissa piu' corta
+                // del suo contenuto e ne nascondeva due dietro una barra di
+                // scorrimento. Sceglierne uno e' la cosa che si fa piu'
+                // spesso in questa schermata: devono essere tutti in vista.
+                VStack(spacing: 2) {
                     ForEach(DidacticFormat.allCases, id: \.self) { format in
                         let isSelected = appViewModel.selectedFormat == format
 
@@ -110,18 +120,20 @@ public struct TeacherSidebarView: View {
 
                                 Spacer(minLength: 0)
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 8)
                             .contentShape(Rectangle())
+                            .background(
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                    .fill(isSelected ? Color.institutional.opacity(0.12) : Color.clear)
+                            )
                         }
                         .buttonStyle(.plain)
-                        .listRowBackground(isSelected ? Color.institutional.opacity(0.12) : Color.clear)
                         .accessibilityElement(children: .combine)
                         .accessibilityLabel("\(format.title): \(format.subtitle)")
                         .accessibilityAddTraits(isSelected ? .isSelected : [])
                     }
                 }
-                .appSidebarListStyle()
-                .frame(minHeight: 200, maxHeight: 240)
             }
             
             Divider()
