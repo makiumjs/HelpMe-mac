@@ -182,8 +182,11 @@ public final class AppViewModel {
                  + "con le diciture della normativa. Niente esce dal Mac."
         }
         if selectedFormat.localComposition == .fromAnyText, engineOverride == nil {
-            return "Estrae i termini dal testo senza IA, con la frase in cui compaiono. "
-                 + "Le definizioni le scrivi tu; per farle scrivere all'IA, scegli un motore a mano."
+            return selectedFormat == .deskCheatSheet
+                ? "Cerca formule, definizioni e dati nel testo, senza IA. Poi taglia: "
+                  + "un formulario da banco vale se è corto."
+                : "Estrae i termini dal testo senza IA, con la frase in cui compaiono. "
+                  + "Le definizioni le scrivi tu; per farle scrivere all'IA, scegli un motore a mano."
         }
         if selectedFormat.localComposition == .fromStructuredText {
             return "Incolla la verifica della classe con i quesiti numerati: l'app la ricostruisce senza IA — "
@@ -542,7 +545,7 @@ public final class AppViewModel {
         // ha scelto un motore a mano, vuol dire che vuole anche le
         // definizioni scritte: gliele si lascia chiedere.
         if selectedFormat.localComposition == .fromAnyText, engineOverride == nil {
-            composeGlossary(for: student)
+            composeFromText(for: student)
             rememberWork()
             return
         }
@@ -628,15 +631,30 @@ public final class AppViewModel {
             + "Lo studente le trova nella sua scheda, cliccabili."
     }
 
-    private func composeGlossary(for student: StudentProfile) {
+    /// I formati che si ricavano da un testo qualsiasi, senza modello.
+    private func composeFromText(for student: StudentProfile) {
         errorMessage = nil
-        let terms = GlossaryExtractor.extract(from: sourceText)
-        generatedContent = GlossaryComposer.compose(terms: terms, interest: student.interest)
 
-        statusMessage = terms.isEmpty
-            ? nil
-            : "\(Plural.it(terms.count, "termine trovato", "termini trovati")) senza IA. "
-              + "Togli quelli che non servono e scrivi le definizioni."
+        switch selectedFormat {
+        case .glossary:
+            let terms = GlossaryExtractor.extract(from: sourceText)
+            generatedContent = GlossaryComposer.compose(terms: terms, interest: student.interest)
+            statusMessage = terms.isEmpty
+                ? nil
+                : "\(Plural.it(terms.count, "termine trovato", "termini trovati")) senza IA. "
+                  + "Togli quelli che non servono e scrivi le definizioni."
+
+        case .deskCheatSheet:
+            let entries = DeskCardExtractor.extract(from: sourceText)
+            generatedContent = DeskCardComposer.compose(entries: entries)
+            statusMessage = entries.isEmpty
+                ? nil
+                : "\(Plural.it(entries.count, "voce trovata", "voci trovate")) senza IA. "
+                  + "Il formulario vale se è corto: togli quello che l'alunno ha già acquisito."
+
+        default:
+            errorMessage = "Questo formato non ha ancora una composizione senza IA."
+        }
     }
 
     private func composeEquipollente(_ exam: ParsedExam, for student: StudentProfile) {

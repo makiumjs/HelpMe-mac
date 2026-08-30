@@ -5,7 +5,7 @@ Trasforma un testo curricolare nel materiale didattico personalizzato che
 serve a un alunno con DSA o ADHD, secondo il D.I. 182/2020.
 
 Progetto Xcode (`Helpme.xcodeproj`), SwiftUI, macOS 14+ / iPadOS 17+.
-**400 test.**
+**412 test.**
 
 ## Cosa fa
 
@@ -88,6 +88,11 @@ terminazione e rarità nel vocabolario italiano, e per ciascuno ripesca la
 frase in cui compare. La definizione e l'analogia le scrive il docente:
 dipendono da quello che l'alunno sa già. Chi sceglie un motore a mano torna
 a farsele scrivere.
+
+Il **Formulario da banco** è `.fromAnyText`: `DeskCardExtractor` riconosce
+formule (un uguale fra due espressioni), definizioni ("X è Y", "prende il
+nome di") e dati (un numero con un'unità di misura), e li raggruppa. L'app
+propone e il docente taglia: uno strumento compensativo vale se è corto.
 
 La **Mappa concettuale**, come il quiz, si costruisce invece di derivarsi:
 `MindmapBuilderModal` è una scaletta con un livello per riga, e può partire

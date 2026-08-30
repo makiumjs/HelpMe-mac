@@ -145,15 +145,40 @@ public nonisolated enum GlossaryExtractor {
     }
 
     static func splitIntoSentences(_ text: String) -> [String] {
+        let flowing = joinWrappedLines(text)
         var sentences: [String] = []
         let tokenizer = NLTokenizer(unit: .sentence)
-        tokenizer.string = text
-        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
-            let sentence = text[range].trimmingCharacters(in: .whitespacesAndNewlines)
+        tokenizer.string = flowing
+        tokenizer.enumerateTokens(in: flowing.startIndex..<flowing.endIndex) { range, _ in
+            let sentence = flowing[range].trimmingCharacters(in: .whitespacesAndNewlines)
             if sentence.count > 15 { sentences.append(sentence) }
             return true
         }
         return sentences
+    }
+
+    /// Ricuce le righe spezzate a meta' frase.
+    ///
+    /// Un testo copiato da un libro va a capo dove finisce la riga, non dove
+    /// finisce la frase: senza ricucirlo si estraevano mezze frasi come
+    /// "delle placche prende il nome di tettonica", che su un formulario da
+    /// banco non servono a niente. Le righe vuote restano, perche' separano i
+    /// paragrafi davvero.
+    static func joinWrappedLines(_ text: String) -> String {
+        var result: [String] = []
+        var paragraph: [String] = []
+
+        func closeParagraph() {
+            if !paragraph.isEmpty { result.append(paragraph.joined(separator: " ")) }
+            paragraph = []
+        }
+
+        for rawLine in text.components(separatedBy: .newlines) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            if line.isEmpty { closeParagraph() } else { paragraph.append(line) }
+        }
+        closeParagraph()
+        return result.joined(separator: "\n\n")
     }
 }
 
