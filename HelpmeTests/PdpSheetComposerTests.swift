@@ -32,7 +32,11 @@ final class PdpSheetComposerTests: XCTestCase {
 
         XCTAssertTrue(scheda.contains("Andrea Pirlo"))
         XCTAssertTrue(scheda.contains("1ITA"))
+        // Il testo coordinato, non il solo decreto del 2020: il D.I. 153/2023
+        // lo ha corretto, e su un documento che entra nel fascicolo citare un
+        // testo non piu' vigente e' un errore.
         XCTAssertTrue(scheda.contains("D.I. 182/2020"), scheda)
+        XCTAssertTrue(scheda.contains("D.I. 153/2023"), "Manca il decreto correttivo: \(scheda)")
     }
 
     /// Il punto di tutto l'esercizio: la dicitura è quella della norma, non

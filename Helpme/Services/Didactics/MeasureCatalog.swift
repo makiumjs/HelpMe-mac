@@ -37,13 +37,19 @@ public nonisolated struct DidacticMeasure: Identifiable, Hashable, Sendable {
 /// esattamente il contrario, e nessun vantaggio.
 ///
 /// Le diciture seguono la L. 170/2010 con il D.M. 5669/2011 e le Linee guida
-/// allegate, e il D.I. 182/2020 per il PEI. **Vanno riviste da un docente di
-/// sostegno prima della vendita**: sono responsabilità professionale sua, non
-/// di chi scrive il software.
+/// allegate, e per il PEI il D.I. 182/2020 nel testo coordinato con il
+/// D.I. 153/2023, dentro la cornice del D.Lgs. 66/2017.
+///
+/// **Vanno riviste da un docente di sostegno prima della vendita**: sono
+/// responsabilità professionale sua, non di chi scrive il software. Verificato
+/// il 30 agosto 2026 che il D.M. 5669/2011 e le sue Linee guida sono ancora
+/// il riferimento vigente per i DSA; circolano notizie di nuove linee guida
+/// ministeriali del marzo 2025 sull'inclusione, ma non se ne trova il decreto
+/// sul sito del Ministero — se esce, questo catalogo va riletto.
 public nonisolated enum MeasureCatalog {
 
     private static let linee = "L. 170/2010 — D.M. 5669/2011, Linee guida"
-    private static let pei = "D.I. 182/2020 — L. 104/1992"
+    private static let pei = "D.I. 182/2020 come modificato dal D.I. 153/2023 — D.Lgs. 66/2017"
 
     /// Cosa si dà all'alunno perché possa fare la stessa cosa degli altri.
     public static let compensative: [DidacticMeasure] = [

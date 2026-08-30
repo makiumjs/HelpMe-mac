@@ -14,12 +14,17 @@ public enum ProgramType: String, Codable, CaseIterable, Sendable, Hashable {
         }
     }
 
+    /// Il riferimento che compare sui documenti.
+    ///
+    /// Si cita il testo coordinato: il D.I. 182/2020 e' stato corretto dal
+    /// D.I. 153/2023, e citare solo il primo rimanda a un testo non piu'
+    /// vigente su un documento che entra nel fascicolo dell'alunno.
     public var legalReference: String {
         switch self {
         case .minimi:
-            return "D.I. 182/2020 Art. 15 c. 1 lett. b - L. 104/1992"
+            return "D.I. 182/2020 Art. 15 c. 1 lett. b, come modificato dal D.I. 153/2023 — L. 104/1992"
         case .differenziato:
-            return "D.I. 182/2020 Art. 15 c. 1 lett. c"
+            return "D.I. 182/2020 Art. 15 c. 1 lett. c, come modificato dal D.I. 153/2023"
         }
     }
 }
