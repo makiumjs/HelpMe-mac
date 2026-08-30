@@ -158,7 +158,7 @@ public struct FocusTimerWidget: View {
     // MARK: - Traguardi
 
     private var badgesButton: some View {
-        Button(action: { viewModel.showBadgesModal = true }) {
+        Button(action: { viewModel.activeSheet = .badges }) {
             HStack(spacing: 4) {
                 Image(systemName: viewModel.earnedBadges.isEmpty ? "rosette" : "flame.fill")
                     .foregroundColor(viewModel.earnedBadges.isEmpty ? .secondary : .orange)

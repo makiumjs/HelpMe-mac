@@ -170,6 +170,14 @@ public struct TeacherSidebarView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(Color.institutional)
                 .disabled(appViewModel.generatedContent.isEmpty)
+        .fileExporter(
+                    isPresented: $teacherViewModel.showDocxExporter,
+                    document: teacherViewModel.pendingDocument,
+                    contentType: .docx,
+                    defaultFilename: teacherViewModel.suggestedFileName
+                ) { result in
+                    teacherViewModel.handleExportResult(result)
+                }
                 .accessibilityLabel("Esporta documento in Microsoft Word con intestazione ufficiale")
                 
                 if let msg = teacherViewModel.exportSuccessMessage {
@@ -192,14 +200,6 @@ public struct TeacherSidebarView: View {
             TeacherSheetPresenter(sheet: sheet,
                                   appViewModel: appViewModel,
                                   teacherViewModel: teacherViewModel)
-        }
-        .fileExporter(
-            isPresented: $teacherViewModel.showDocxExporter,
-            document: teacherViewModel.pendingDocument,
-            contentType: .docx,
-            defaultFilename: teacherViewModel.suggestedFileName
-        ) { result in
-            teacherViewModel.handleExportResult(result)
         }
         .alert(
             "Eliminare la scheda di \(studentPendingDeletion?.name ?? "")?",

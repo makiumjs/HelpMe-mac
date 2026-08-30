@@ -42,26 +42,27 @@ public struct StudentReaderView: View {
             guard !isGenerating else { return }
             studentViewModel.parseStudyTools(from: appViewModel.generatedContent)
         }
-        .sheet(isPresented: $studentViewModel.showMindmap) {
-            MindmapCardView(
-                viewModel: studentViewModel,
-                settings: appViewModel.accessibilitySettings,
-                onClose: { studentViewModel.showMindmap = false }
-            )
-        }
-        .sheet(isPresented: $studentViewModel.showQuiz) {
-            InteractiveQuizView(
-                viewModel: studentViewModel,
-                settings: appViewModel.accessibilitySettings,
-                onClose: { studentViewModel.showQuiz = false }
-            )
-        }
-        .sheet(isPresented: $studentViewModel.showBadgesModal) {
-            BadgesModalView(
-                completedSessions: studentViewModel.completedSessions,
-                settings: appViewModel.accessibilitySettings,
-                onClose: { studentViewModel.showBadgesModal = false }
-            )
+        .sheet(item: $studentViewModel.activeSheet) { sheet in
+            switch sheet {
+            case .mindmap:
+                MindmapCardView(
+                    viewModel: studentViewModel,
+                    settings: appViewModel.accessibilitySettings,
+                    onClose: { studentViewModel.activeSheet = nil }
+                )
+            case .quiz:
+                InteractiveQuizView(
+                    viewModel: studentViewModel,
+                    settings: appViewModel.accessibilitySettings,
+                    onClose: { studentViewModel.activeSheet = nil }
+                )
+            case .badges:
+                BadgesModalView(
+                    completedSessions: studentViewModel.completedSessions,
+                    settings: appViewModel.accessibilitySettings,
+                    onClose: { studentViewModel.activeSheet = nil }
+                )
+            }
         }
     }
 
@@ -120,7 +121,7 @@ public struct StudentReaderView: View {
                     symbol: "point.topleft.down.to.point.bottomright.curvepath",
                     hint: "Apri il materiale come mappa concettuale navigabile",
                     compact: compact
-                ) { studentViewModel.showMindmap = true }
+                ) { studentViewModel.activeSheet = .mindmap }
             }
 
             if studentViewModel.hasQuiz {
@@ -129,7 +130,7 @@ public struct StudentReaderView: View {
                     symbol: "checklist",
                     hint: "Mettiti alla prova con le domande generate",
                     compact: compact
-                ) { studentViewModel.showQuiz = true }
+                ) { studentViewModel.activeSheet = .quiz }
             }
 
             Spacer(minLength: 8)
@@ -235,7 +236,7 @@ public struct StudentReaderView: View {
 
             Spacer(minLength: 8)
 
-            Button("Vedi") { studentViewModel.showBadgesModal = true }
+            Button("Vedi") { studentViewModel.activeSheet = .badges }
                 .buttonStyle(.bordered)
                 .font(.system(size: 12, weight: .medium, design: .rounded))
 

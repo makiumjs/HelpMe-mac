@@ -16,6 +16,11 @@ public enum FocusPhase: String, Sendable, Equatable {
     case onBreak
 }
 
+public enum StudentSheet: String, Identifiable, Sendable {
+    case mindmap, quiz, badges
+    public var id: String { rawValue }
+}
+
 @Observable
 @MainActor
 public final class StudentReaderViewModel {
@@ -36,15 +41,19 @@ public final class StudentReaderViewModel {
     /// Badge appena conquistato, da festeggiare una volta sola.
     public private(set) var newlyEarnedBadge: FocusBadge? = nil
 
-    public var showBadgesModal: Bool = false
+
 
     public var earnedBadges: [FocusBadge] { FocusBadge.earned(afterSessions: completedSessions) }
     public var nextBadge: FocusBadge? { FocusBadge.next(afterSessions: completedSessions) }
 
     // MARK: - Studio interattivo
 
-    public var showMindmap: Bool = false
-    public var showQuiz: Bool = false
+    /// Il pannello aperto, se ce n'e' uno.
+    ///
+    /// Erano tre bandiere con tre `.sheet` incatenati sulla stessa vista:
+    /// SwiftUI non li presenta in modo affidabile, ed erano la mappa, il quiz
+    /// e i traguardi - cioe' tutto quello che lo studente apre.
+    public var activeSheet: StudentSheet? = nil
 
     // MARK: - Righello di lettura
 
