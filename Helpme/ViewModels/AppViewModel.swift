@@ -18,6 +18,7 @@ public final class AppViewModel {
             guard selectedStudent !== oldValue else { return }
             if let previous = oldValue { store(into: previous) }
             restoreWork(of: selectedStudent)
+            sourceTextReviewed = false
         }
     }
     public func rememberWork() {
@@ -134,6 +135,16 @@ public final class AppViewModel {
         guard let engine = activeEngine else { return engineSelector.blockingMessage }
         return engineSelector.rationale(for: selectedFormat, engine: engine)
     }
+    /// Vero quando la generazione manderebbe il testo fuori dal Mac. I
+    /// formati che si compongono in locale non lo fanno, e avvisare lì
+    /// insegnerebbe solo a ignorare l'avviso.
+    public var usesRemoteModel: Bool {
+        guard selectedFormat.localComposition == .none
+                || (selectedFormat.localComposition == .fromAnyText && engineOverride != nil)
+        else { return false }
+        return activeEngine == .gemini
+    }
+
     public var canGenerate: Bool {
         guard LicenseGate.canGenerate(licenseState) else { return false }
         if activeEngine != nil { return true }
@@ -149,7 +160,27 @@ public final class AppViewModel {
 
     // MARK: - Editor
     static let editorFillLimit = 50_000
-    public var sourceText: String = ""
+    public var sourceText: String = "" {
+        didSet { if sourceText != oldValue { sourceTextReviewed = false } }
+    }
+
+    /// Il docente ha guardato l'avviso e ha confermato che è materiale
+    /// didattico. Decade a ogni modifica del testo e a ogni cambio di alunno:
+    /// una conferma data su un altro testo non vale su questo.
+    public private(set) var sourceTextReviewed = false
+
+    public var sourceTextScreening: SourceTextScreening {
+        SourceTextScreening.of(
+            sourceText: sourceText,
+            student: selectedStudent,
+            indexedExcerpts: indexedDocuments.isEmpty ? [] : semanticSearch.allExcerpts()
+        )
+    }
+
+    public func confirmSourceTextReviewed() {
+        sourceTextReviewed = true
+        errorMessage = nil
+    }
     public var generatedContent: String = ""
     public var isGenerating: Bool = false
     public var errorMessage: String? = nil
@@ -399,6 +430,15 @@ public final class AppViewModel {
         }
         guard !SourceTextCheck.looksLikeAnInstruction(sourceText) else {
             errorMessage = SourceTextCheck.instructionExplanation(for: sourceText)
+            return
+        }
+
+        if let blocked = SourceTextScreening.blockingMessage(
+            screening: sourceTextScreening,
+            reviewed: sourceTextReviewed,
+            goesToCloud: usesRemoteModel
+        ) {
+            errorMessage = blocked
             return
         }
         if selectedFormat.localComposition == .fromAnyText, engineOverride == nil {

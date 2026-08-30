@@ -65,6 +65,8 @@ public nonisolated final class SemanticSearchService: @unchecked Sendable {
     }
 
     // MARK: - Stato dell'indice
+    public func allExcerpts() -> [String] { vectorStore.allChunks().map(\.text) }
+
     public func clearIndex() {
         vectorStore.clear()
     }

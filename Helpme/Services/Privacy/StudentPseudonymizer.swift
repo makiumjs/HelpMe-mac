@@ -75,10 +75,24 @@ nonisolated public enum StudentPseudonymizer {
             .filter { !$0.isEmpty }
     }
     static func containsClinicalTerm(_ text: String) -> Bool {
+        !clinicalTerms(in: text).isEmpty
+    }
+
+    public static func clinicalTerms(in text: String) -> [String] {
         let haystack = " " + normalizeForMatching(text) + " "
-        return clinicalTerms.contains { term in
-            haystack.contains(" " + normalizeForMatching(term))
-        }
+        return clinicalTerms.filter { haystack.contains(" " + normalizeForMatching($0)) }
+    }
+
+    /// Parole di almeno tre lettere: un cognome come "Re" scatterebbe a ogni
+    /// riga, e un avviso che scatta sempre non lo legge piu' nessuno.
+    public static func containsStudentName(_ text: String, name: String) -> Bool {
+        let haystack = " " + normalizeForMatching(text) + " "
+        let parts = normalizeForMatching(name)
+            .components(separatedBy: " ")
+            .filter { $0.count >= 3 }
+
+        guard !parts.isEmpty else { return false }
+        return parts.contains { haystack.contains(" " + $0 + " ") }
     }
 
     private static func normalizeForMatching(_ text: String) -> String {

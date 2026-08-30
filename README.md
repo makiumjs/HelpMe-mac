@@ -5,7 +5,7 @@ Trasforma un testo curricolare nel materiale didattico personalizzato che
 serve a un alunno con DSA o ADHD, secondo il D.I. 182/2020.
 
 Progetto Xcode (`Helpme.xcodeproj`), SwiftUI, macOS 14+ / iPadOS 17+.
-**439 test.**
+**450 test.**
 
 ## Cosa fa
 
@@ -28,7 +28,10 @@ timer Focus propone pause attive e tiene i traguardi.
 e sanitari di minori con disabilità. Verso il cloud esce solo la forma
 pseudonimizzata: nome e riferimenti diagnostici non lasciano il Mac, e il
 nome rientra soltanto in locale nella risposta. `StudentPseudonymizer` è
-quel confine, e `PrivacyTests` lo presidia — se un cambiamento fa fallire
+quel confine per la scheda; `SourceTextScreening` sorveglia il testo che il
+docente incolla e i frammenti indicizzati, che verso il cloud escono com'è —
+lì si avvisa e non si filtra, perché scartare una frase dal testo di partenza
+mutilerebbe la verifica da trasformare. `PrivacyTests` presidia — se un cambiamento fa fallire
 quei test non è un test da aggiustare, è una fuga da fermare.
 
 **Lo studente non deve vedere le risposte.** Il materiale che gli arriva —

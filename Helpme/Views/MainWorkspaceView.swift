@@ -204,6 +204,26 @@ public struct MainWorkspaceView: View {
                 if !appViewModel.indexedDocuments.isEmpty {
                     indexedDocumentsRow
                 }
+                if appViewModel.usesRemoteModel,
+                   let warning = appViewModel.sourceTextScreening.warning,
+                   !appViewModel.sourceTextReviewed {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label(warning, systemImage: "exclamationmark.shield.fill")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.orange)
+                        Button("È materiale didattico, procedi") {
+                            appViewModel.confirmSourceTextReviewed()
+                        }
+                        .buttonStyle(.bordered)
+                        .font(.system(size: 11))
+                    }
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.orange.opacity(0.10))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .accessibilityElement(children: .combine)
+                }
+
                 Button(action: {
                     Task {
                         await appViewModel.generateMaterial()
