@@ -17,7 +17,7 @@ public nonisolated enum DeskCardExtractor {
         var entries: [DeskCardEntry] = []
         var seen = Set<String>()
 
-        for sentence in GlossaryExtractor.splitIntoSentences(text) {
+        for sentence in SentenceSplitter.sentences(in: text, minimumLength: 15) {
             let clean = sentence
                 .trimmingCharacters(in: CharacterSet(charactersIn: "-*• \t"))
                 .trimmingCharacters(in: .whitespacesAndNewlines)

@@ -41,7 +41,7 @@ public nonisolated struct ReadabilityReport: Equatable, Sendable {
 public nonisolated enum ReadabilityAnalyzer {
 
     public static func analyze(_ text: String) -> ReadabilityReport {
-        let sentences = sentencesOf(text).map(reading(of:))
+        let sentences = SentenceSplitter.sentences(in: text).map(reading(of:))
         return ReadabilityReport(sentences: sentences, gulpease: gulpease(text, sentenceCount: sentences.count))
     }
     static func gulpease(_ text: String, sentenceCount: Int) -> Int {
@@ -88,18 +88,6 @@ public nonisolated enum ReadabilityAnalyzer {
         return false
     }
 
-    static func sentencesOf(_ text: String) -> [String] {
-        let flowing = GlossaryExtractor.joinWrappedLines(text)
-        var sentences: [String] = []
-        let tokenizer = NLTokenizer(unit: .sentence)
-        tokenizer.string = flowing
-        tokenizer.enumerateTokens(in: flowing.startIndex..<flowing.endIndex) { range, _ in
-            let sentence = flowing[range].trimmingCharacters(in: .whitespacesAndNewlines)
-            if !sentence.isEmpty { sentences.append(sentence) }
-            return true
-        }
-        return sentences
-    }
     static func withoutElision(_ word: String) -> String {
         guard let apostrophe = word.firstIndex(where: { $0 == "\u{2019}" || $0 == "'" }) else { return word }
         let prefix = word[word.startIndex..<apostrophe]

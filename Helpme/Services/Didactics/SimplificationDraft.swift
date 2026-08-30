@@ -15,12 +15,12 @@ public nonisolated struct SimplificationRow: Identifiable, Equatable {
 public nonisolated enum SimplificationDraft {
 
     public static func rows(from text: String) -> [SimplificationRow] {
-        let paragraphs = GlossaryExtractor.joinWrappedLines(text)
+        let paragraphs = SentenceSplitter.joinWrappedLines(text)
             .components(separatedBy: "\n\n")
             .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
 
         return paragraphs.flatMap { paragraph -> [SimplificationRow] in
-            let sentences = ReadabilityAnalyzer.sentencesOf(paragraph)
+            let sentences = SentenceSplitter.sentences(in: paragraph)
             return sentences.enumerated().map { index, sentence in
                 SimplificationRow(
                     original: sentence,

@@ -331,9 +331,9 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "HelpMe usa il microfono solo per la dettatura vocale, così chi ha difficoltà di scrittura può comporre il testo parlando.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Il riconoscimento vocale trascrive il parlato in testo. Avviene sul dispositivo quando il modello italiano è disponibile.";
-				GENERATE_INFOPLIST_FILE = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -380,9 +380,9 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "HelpMe usa il microfono solo per la dettatura vocale, così chi ha difficoltà di scrittura può comporre il testo parlando.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Il riconoscimento vocale trascrive il parlato in testo. Avviene sul dispositivo quando il modello italiano è disponibile.";
-				GENERATE_INFOPLIST_FILE = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

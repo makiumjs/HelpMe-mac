@@ -29,7 +29,7 @@ public nonisolated enum GlossaryExtractor {
         "pagina", "capitolo", "libro", "quesito", "domanda", "risposta"
     ]
     public static func extract(from text: String, limit: Int = 15) -> [GlossaryTerm] {
-        let sentences = splitIntoSentences(text)
+        let sentences = SentenceSplitter.sentences(in: text, minimumLength: 15)
         guard !sentences.isEmpty else { return [] }
 
         var counts: [String: Int] = [:]
@@ -101,34 +101,6 @@ public nonisolated enum GlossaryExtractor {
         ["are", "ere", "ire", "arsi", "ersi", "irsi"].contains { word.hasSuffix($0) }
     }
 
-    static func splitIntoSentences(_ text: String) -> [String] {
-        let flowing = joinWrappedLines(text)
-        var sentences: [String] = []
-        let tokenizer = NLTokenizer(unit: .sentence)
-        tokenizer.string = flowing
-        tokenizer.enumerateTokens(in: flowing.startIndex..<flowing.endIndex) { range, _ in
-            let sentence = flowing[range].trimmingCharacters(in: .whitespacesAndNewlines)
-            if sentence.count > 15 { sentences.append(sentence) }
-            return true
-        }
-        return sentences
-    }
-    static func joinWrappedLines(_ text: String) -> String {
-        var result: [String] = []
-        var paragraph: [String] = []
-
-        func closeParagraph() {
-            if !paragraph.isEmpty { result.append(paragraph.joined(separator: " ")) }
-            paragraph = []
-        }
-
-        for rawLine in text.components(separatedBy: .newlines) {
-            let line = rawLine.trimmingCharacters(in: .whitespaces)
-            if line.isEmpty { closeParagraph() } else { paragraph.append(line) }
-        }
-        closeParagraph()
-        return result.joined(separator: "\n\n")
-    }
 }
 public nonisolated enum GlossaryComposer {
 

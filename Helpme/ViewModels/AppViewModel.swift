@@ -424,6 +424,10 @@ public final class AppViewModel {
             errorMessage = engineSelector.blockingMessage
             return
         }
+        await generate(with: engine, for: student)
+    }
+
+    private func generate(with engine: AIEngine, for student: StudentProfile) async {
         isGenerating = true
         generatedContent = ""
         errorMessage = nil

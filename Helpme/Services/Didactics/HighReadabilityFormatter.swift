@@ -2,13 +2,13 @@ import Foundation
 public nonisolated enum HighReadabilityFormatter {
 
     public static func format(_ text: String) -> String {
-        let paragraphs = GlossaryExtractor.joinWrappedLines(text)
+        let paragraphs = SentenceSplitter.joinWrappedLines(text)
             .components(separatedBy: "\n\n")
             .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
 
         return paragraphs
             .map { paragraph in
-                ReadabilityAnalyzer.sentencesOf(paragraph)
+                SentenceSplitter.sentences(in: paragraph)
                     .map(asLine)
                     .joined(separator: "\n\n")
             }
