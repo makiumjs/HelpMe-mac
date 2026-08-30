@@ -5,7 +5,7 @@ Trasforma un testo curricolare nel materiale didattico personalizzato che
 serve a un alunno con DSA o ADHD, secondo il D.I. 182/2020.
 
 Progetto Xcode (`Helpme.xcodeproj`), SwiftUI, macOS 14+ / iPadOS 17+.
-**430 test.**
+**439 test.**
 
 ## Cosa fa
 
@@ -96,6 +96,11 @@ posto delle enumerazioni annunciate — e misura dov'è difficile con l'indice
 **Gulpease**, la formula tarata sull'italiano, segnalando frasi lunghe,
 subordinate annidate, forme passive e parole rare. Riscrivere le frasi resta
 al docente, e il documento lo scrive in fondo.
+
+`SimplificationWorkbenchModal` è il passo successivo: mostra **solo** le
+frasi che pesano, con l'originale sopra e una casella sotto, e l'indice si
+muove mentre si riscrive. Il testo si rimonta da solo — le frasi non toccate
+restano dov'erano, e non c'è copia-incolla da sbagliare.
 
 `ClearTextComposer` riusa il **glossario già compilato per quell'alunno**:
 dove il testo usa un termine che il docente ha già spiegato, ripropone le

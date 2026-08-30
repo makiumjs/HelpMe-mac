@@ -628,6 +628,19 @@ public final class AppViewModel {
         isGenerating = false
     }
 
+    /// Mette nel materiale il testo riscritto dal docente nel cantiere.
+    public func applySimplifiedText(_ text: String, rewritten: Int, gulpease: Int) {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        generatedContent = text
+        selectedFormat = .clearExplanation
+        errorMessage = nil
+        statusMessage = rewritten == 0
+            ? "Testo impaginato senza riscritture. Indice Gulpease \(gulpease)/100."
+            : "\(Plural.it(rewritten, "frase riscritta", "frasi riscritte")) da te. "
+              + "Indice Gulpease \(gulpease)/100."
+        rememberWork()
+    }
+
     /// Mette nel materiale la mappa costruita dal docente.
     public func applyMindmap(_ nodes: [MindmapNode]) {
         guard !nodes.isEmpty else { return }

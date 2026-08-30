@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 public enum TeacherSheet: String, Identifiable, Sendable {
-    case newStudent, measures, quizBuilder, mindmapBuilder, gloDiary, schoolHeader
+    case newStudent, measures, quizBuilder, mindmapBuilder, simplifier, gloDiary, schoolHeader
     public var id: String { rawValue }
 }
 

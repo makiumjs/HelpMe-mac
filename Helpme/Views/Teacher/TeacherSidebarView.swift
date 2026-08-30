@@ -162,6 +162,14 @@ public struct TeacherSidebarView: View {
                 .buttonStyle(.bordered)
                 .help("Costruisce una mappa concettuale navigabile senza passare dall'IA")
 
+                Button(action: { teacherViewModel.activeSheet = .simplifier }) {
+                    Label("Semplifica il testo", systemImage: "text.badge.checkmark")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.bordered)
+                .disabled(appViewModel.sourceText.trimmingCharacters(in: .whitespaces).isEmpty)
+                .help("Riscrive una per volta le frasi difficili del testo di partenza")
+
                 Button(action: { teacherViewModel.activeSheet = .gloDiary }) {
                     Label("Registro GLO (4 Dimensioni)", systemImage: "book.pages.fill")
                         .font(.system(size: 12, weight: .medium, design: .rounded))

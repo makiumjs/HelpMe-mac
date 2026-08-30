@@ -24,6 +24,8 @@ struct TeacherSheetPresenter: View {
             QuizBuilderModal(appViewModel: appViewModel)
         case .mindmapBuilder:
             MindmapBuilderModal(appViewModel: appViewModel)
+        case .simplifier:
+            SimplificationWorkbenchModal(appViewModel: appViewModel)
         case .gloDiary:
             GloDiaryModalView(teacherViewModel: teacherViewModel)
         case .schoolHeader:
