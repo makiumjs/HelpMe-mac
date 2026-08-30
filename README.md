@@ -5,7 +5,7 @@ Trasforma un testo curricolare nel materiale didattico personalizzato che
 serve a un alunno con DSA o ADHD, secondo il D.I. 182/2020.
 
 Progetto Xcode (`Helpme.xcodeproj`), SwiftUI, macOS 14+ / iPadOS 17+.
-**389 test.**
+**400 test.**
 
 ## Cosa fa
 
@@ -88,6 +88,12 @@ terminazione e rarità nel vocabolario italiano, e per ciascuno ripesca la
 frase in cui compare. La definizione e l'analogia le scrive il docente:
 dipendono da quello che l'alunno sa già. Chi sceglie un motore a mano torna
 a farsele scrivere.
+
+La **Mappa concettuale**, come il quiz, si costruisce invece di derivarsi:
+`MindmapBuilderModal` è una scaletta con un livello per riga, e può partire
+dai termini che `GlossaryExtractor` trova nel testo — riordinarli *è* il
+lavoro che costruisce la mappa. `MindmapComposer` scrive i rientri che
+`MindmapParser` rilegge.
 
 Il **Quiz** non si deriva da un testo: si scrive. `QuizBuilderModal` lo fa
 scrivere al docente e `QuizComposer` produce il markup che il lettore si

@@ -607,6 +607,16 @@ public final class AppViewModel {
         isGenerating = false
     }
 
+    /// Mette nel materiale la mappa costruita dal docente.
+    public func applyMindmap(_ nodes: [MindmapNode]) {
+        guard !nodes.isEmpty else { return }
+        generatedContent = MindmapComposer.compose(nodes)
+        selectedFormat = .conceptMap
+        errorMessage = nil
+        statusMessage = "Mappa pronta senza IA. Lo studente la trova navigabile nella sua scheda."
+        rememberWork()
+    }
+
     /// Mette nel materiale il quiz scritto a mano dal docente.
     public func applyQuiz(_ questions: [QuizQuestion]) {
         guard !questions.isEmpty else { return }

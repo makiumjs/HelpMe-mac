@@ -155,6 +155,13 @@ public struct TeacherSidebarView: View {
                 .buttonStyle(.bordered)
                 .help("Scrive un quiz cliccabile senza passare dall'IA")
 
+                Button(action: { teacherViewModel.activeSheet = .mindmapBuilder }) {
+                    Label("Costruisci la mappa", systemImage: "point.topleft.down.curvedto.point.bottomright.up")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.bordered)
+                .help("Costruisce una mappa concettuale navigabile senza passare dall'IA")
+
                 Button(action: { teacherViewModel.activeSheet = .gloDiary }) {
                     Label("Registro GLO (4 Dimensioni)", systemImage: "book.pages.fill")
                         .font(.system(size: 12, weight: .medium, design: .rounded))
