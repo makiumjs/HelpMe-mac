@@ -1,10 +1,4 @@
 import SwiftUI
-
-/// Le famiglie tipografiche offerte al lettore.
-///
-/// I file veri stanno in Resources/Fonts: prima erano mappate su font di
-/// sistema, e OpenDyslexic finiva addirittura su un serif — l'opposto di
-/// quello che serve a un lettore dislessico.
 public enum AccessibleFontFamily: String, CaseIterable, Codable, Sendable {
     case lexend
     case openDyslexic
@@ -33,7 +27,6 @@ public enum AccessibleFontFamily: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// Nome della famiglia registrata, o `nil` per i font di sistema.
     public var bundledFamilyName: String? {
         switch self {
         case .lexend: return "Lexend"
@@ -42,14 +35,11 @@ public enum AccessibleFontFamily: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// Vero se il font è davvero disponibile: le voci non disponibili
-    /// vengono segnalate invece di ricadere in silenzio sul font di sistema.
     public var isAvailable: Bool {
         guard let family = bundledFamilyName else { return true }
         return FontRegistrar.isAvailable(family)
     }
 
-    /// Il font da usare, con ripiego esplicito se il file manca.
     public func font(size: CGFloat, weight: Font.Weight = .regular) -> Font {
         switch self {
         case .lexend, .openDyslexic:
@@ -80,9 +70,6 @@ public enum ColorThemePreset: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    // I colori sono definiti qui una volta sola: prima esistevano in due
-    // versioni scollegate, esadecimale nel modello e RGB nella vista.
-
     public var background: Color {
         switch self {
         case .defaultTheme:      return Color(hex: 0xF8FAF9)
@@ -110,8 +97,6 @@ public enum ColorThemePreset: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// Colore della parola in lettura nel karaoke: deve staccare dal testo
-    /// normale restando leggibile sul fondo del tema.
     public var karaokeHighlight: Color {
         switch self {
         case .defaultTheme:      return Color(hex: 0x0D5A1F)
@@ -121,7 +106,6 @@ public enum ColorThemePreset: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// Sfondo dietro la parola in lettura.
     public var karaokeBackground: Color {
         switch self {
         case .defaultTheme:      return Color(hex: 0xD8F0DC)
@@ -131,17 +115,10 @@ public enum ColorThemePreset: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// Lo schema di colori che i controlli di sistema devono adottare.
-    ///
-    /// Un tema dipinge il proprio sfondo, ma pulsanti e barre di
-    /// avanzamento seguono l'aspetto del sistema: senza questo, «Alto
-    /// contrasto scuro» dà un pannello nero con sopra controlli in stile
-    /// chiaro, illeggibili.
     public var colorScheme: ColorScheme {
         self == .highContrastDark ? .dark : .light
     }
 
-    /// Le due tinte alternate della sillabazione a colori.
     public var syllableColors: (Color, Color) {
         switch self {
         case .defaultTheme:      return (Color(hex: 0x1A2E22), Color(hex: 0x1462A8))
@@ -163,10 +140,7 @@ public struct AccessibilitySettings: Codable, Sendable, Equatable {
     public var speechPitch: Float
     public var theme: ColorThemePreset
     public var syllableColorsEnabled: Bool
-    /// Applica tipografia e tema anche alle schermate del docente,
-    /// non solo all'area di lettura.
     public var applyThemeToWholeApp: Bool
-
     public init(
         fontFamily: AccessibleFontFamily = .lexend,
         fontSize: Double = 17.0,
@@ -193,8 +167,6 @@ public struct AccessibilitySettings: Codable, Sendable, Equatable {
         self.applyThemeToWholeApp = applyThemeToWholeApp
     }
 
-    /// Le impostazioni salvate prima che esistessero i campi nuovi devono
-    /// continuare a caricarsi: i valori mancanti prendono il default.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let fallback = AccessibilitySettings()

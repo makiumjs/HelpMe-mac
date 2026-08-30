@@ -1,8 +1,4 @@
 import Foundation
-
-/// Un documento presente nell'indice, come lo vede il docente.
-/// Esito di un'importazione: quanto e' finito nell'indice, e il testo
-/// estratto, che il docente puo' volersi ritrovare nell'editor.
 public nonisolated struct ImportedDocument: Sendable {
     public let title: String
     public let text: String
@@ -30,22 +26,10 @@ public nonisolated final class SemanticSearchService: @unchecked Sendable {
     }
 
     // MARK: - Indicizzazione
-
-    /// Indicizza un documento scelto dal docente.
-    ///
-    /// L'URL arriva dal selettore di file di sistema, quindi è fuori dalla
-    /// sandbox dell'app: l'accesso va aperto e richiuso esplicitamente,
-    /// altrimenti la lettura fallisce con un errore di permessi.
     @discardableResult
     public func indexDocument(url: URL, title: String? = nil) throws -> Int {
         try importDocument(url: url, title: title).chunkCount
     }
-
-    /// Come `indexDocument`, ma restituisce anche il testo estratto.
-    ///
-    /// Serve perche' indicizzare non basta: il docente che importa la lezione
-    /// vuole adattare *quella*, e finora il testo spariva nell'indice mentre
-    /// l'editor restava vuoto. Si estrae una volta sola.
     public func importDocument(url: URL, title: String? = nil) throws -> ImportedDocument {
         let docTitle = title ?? url.deletingPathExtension().lastPathComponent
 
@@ -60,9 +44,6 @@ public nonisolated final class SemanticSearchService: @unchecked Sendable {
                 NSLocalizedDescriptionKey: "\(url.lastPathComponent) è stato letto ma non conteneva testo utilizzabile."
             ])
         }
-
-        // Reindicizzare lo stesso documento lo sostituisce invece di
-        // duplicarne i frammenti nei risultati della ricerca.
         vectorStore.removeChunks(ofDocument: docTitle)
         vectorStore.add(chunks: chunks)
         return ImportedDocument(title: docTitle, text: text, chunkCount: chunks.count)
@@ -77,7 +58,6 @@ public nonisolated final class SemanticSearchService: @unchecked Sendable {
     }
 
     // MARK: - Ricerca
-
     public func searchRelevantContext(query: String, topK: Int = 3) -> [DocumentChunk] {
         let queryEmbedding = DocumentIndexer.embedding(for: query)
         let results = vectorStore.search(queryEmbedding: queryEmbedding, topK: topK)
@@ -85,11 +65,9 @@ public nonisolated final class SemanticSearchService: @unchecked Sendable {
     }
 
     // MARK: - Stato dell'indice
-
     public func clearIndex() {
         vectorStore.clear()
     }
-
     @discardableResult
     public func removeDocument(title: String) -> Int {
         vectorStore.removeChunks(ofDocument: title)
@@ -98,9 +76,6 @@ public nonisolated final class SemanticSearchService: @unchecked Sendable {
     public var indexedChunksCount: Int {
         vectorStore.allChunks().count
     }
-
-    /// I documenti nell'indice, nell'ordine in cui sono stati aggiunti:
-    /// serve a mostrare al docente che cosa l'IA può davvero consultare.
     public var indexedDocuments: [IndexedDocument] {
         var order: [String] = []
         var counts: [String: Int] = [:]

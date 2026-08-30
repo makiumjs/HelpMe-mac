@@ -4,7 +4,6 @@ public nonisolated struct QuizOption: Identifiable, Sendable, Equatable {
     public let id = UUID()
     public var text: String
     public var isCorrect: Bool
-    /// Spiegazione formativa: perché questa risposta è giusta o sbagliata.
     public var explanation: String?
 
     public init(text: String, isCorrect: Bool, explanation: String? = nil) {
@@ -23,9 +22,6 @@ public nonisolated struct QuizQuestion: Identifiable, Sendable, Equatable {
         self.prompt = prompt
         self.options = options
     }
-
-    /// Una domanda è utilizzabile solo se ha esattamente una risposta giusta
-    /// e almeno due alternative: altrimenti non c'è niente da scegliere.
     public var isUsable: Bool {
         options.count >= 2 && options.filter(\.isCorrect).count == 1
     }
@@ -34,13 +30,6 @@ public nonisolated struct QuizQuestion: Identifiable, Sendable, Equatable {
         options.first(where: \.isCorrect)
     }
 }
-
-/// Ricostruisce un quiz cliccabile dal testo generato dall'IA.
-///
-/// Il formato chiesto nel prompt è la casella `- [x]`, ma i modelli
-/// derivano facilmente verso "A) … ✅" o "Risposta corretta: B":
-/// il parser accetta anche quelli, perché una domanda persa in silenzio
-/// è peggio di una domanda formattata male.
 public nonisolated enum QuizParser {
 
     public static func parse(_ text: String) -> [QuizQuestion] {
@@ -62,8 +51,6 @@ public nonisolated enum QuizParser {
         for rawLine in text.components(separatedBy: .newlines) {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty else { continue }
-
-            // "Risposta corretta: B" — indica a posteriori quale opzione vale.
             if let letter = correctAnswerLetter(in: line) {
                 if let index = letters[letter] {
                     for position in options.indices { options[position].isCorrect = false }
@@ -87,15 +74,11 @@ public nonisolated enum QuizParser {
             if options.isEmpty {
                 let cleaned = MindmapParser.stripEmphasis(line)
                 if let existing = prompt, !existing.isEmpty {
-                    // Righe successive di una domanda spezzata su più righe.
-                    if !existing.hasSuffix("?") { prompt = existing + " " + cleaned }
+                   if !existing.hasSuffix("?") { prompt = existing + " " + cleaned }
                 } else {
-                    // Nessun testo ancora: qui sta la domanda vera, per
-                    // esempio la riga sotto un titolo "### Domanda 1".
                     prompt = cleaned
                 }
             } else if let explanation = trailingExplanation(line) {
-                // Spiegazione unica riferita alla risposta giusta.
                 if let index = options.firstIndex(where: { $0.isCorrect }), options[index].explanation == nil {
                     options[index].explanation = explanation
                 }
@@ -113,15 +96,10 @@ public nonisolated enum QuizParser {
         "(risposta corretta)", "[corretta]", "[x]", "[X]", "← corretta", "→ corretta",
         "- corretta", "risposta corretta"
     ]
-
-    /// Riconosce `- [x] testo`, `A) testo`, `* testo`.
-    /// Restituisce la lettera dell'opzione, se c'è, e l'opzione stessa.
     static func parseOption(_ line: String) -> (letter: String?, option: QuizOption)? {
         var body = line
         var isCorrect = false
         var letter: String? = nil
-
-        // 1. Casella di spunta, con o senza trattino davanti.
         for bullet in ["- ", "* ", "+ ", ""] where body.hasPrefix(bullet) {
             let rest = String(body.dropFirst(bullet.count))
             let lowered = rest.lowercased()
@@ -134,8 +112,6 @@ public nonisolated enum QuizParser {
             }
             if !bullet.isEmpty { break }
         }
-
-        // 2. Lettera: "A) testo", "- b. testo".
         var candidate = body
         for bullet in ["- ", "* ", "+ "] where candidate.hasPrefix(bullet) {
             candidate = String(candidate.dropFirst(bullet.count))
@@ -175,8 +151,6 @@ public nonisolated enum QuizParser {
         }
         return output.trimmingCharacters(in: CharacterSet(charactersIn: " \t-–—:")).trimmingCharacters(in: .whitespaces)
     }
-
-    /// Separa "opzione :: spiegazione".
     private static func splitExplanation(_ text: String) -> (String, String?) {
         for separator in [" :: ", "::", " — ", " – ", " | "] {
             if let range = text.range(of: separator) {
@@ -197,8 +171,6 @@ public nonisolated enum QuizParser {
 
         if line.hasPrefix("#") { return true }
         if lowered.hasPrefix("domanda") { return true }
-
-        // "3. Qual è …?" — un numero seguito da testo che chiede qualcosa.
         let digits = line.prefix { $0.isNumber }
         if !digits.isEmpty {
             let rest = line.dropFirst(digits.count)
@@ -220,13 +192,7 @@ public nonisolated enum QuizParser {
         }
 
         text = MindmapParser.stripEmphasis(text)
-
-        // Un titolo "### Domanda 1" è solo un'etichetta: la domanda vera sta
-        // nella riga sotto. Restituire vuoto le lascia il posto, invece di
-        // ritrovarsi "Domanda 1 Quante fasi ci sono?".
         if isBareQuestionLabel(text) { return "" }
-
-        // "Domanda 3: Qual è …" → "Qual è …"
         if text.lowercased().hasPrefix("domanda") {
             if let colon = text.firstIndex(of: ":") {
                 let remainder = String(text[text.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
@@ -240,9 +206,6 @@ public nonisolated enum QuizParser {
 
         return text
     }
-
-    /// Vero per "Domanda", "Domanda 3", "Domanda 3:" — cioè per una riga
-    /// che annuncia la domanda senza contenerla.
     static func isBareQuestionLabel(_ text: String) -> Bool {
         let lowered = text.lowercased().trimmingCharacters(in: .whitespaces)
         guard lowered.hasPrefix("domanda") else { return false }
@@ -250,15 +213,12 @@ public nonisolated enum QuizParser {
             .trimmingCharacters(in: CharacterSet(charactersIn: " 0123456789:.)-–—"))
         return remainder.isEmpty
     }
-
-    /// "Risposta corretta: B" → "B".
     private static func correctAnswerLetter(in line: String) -> String? {
         let lowered = MindmapParser.stripEmphasis(line).lowercased()
         for prefix in ["risposta corretta", "risposta esatta", "soluzione"] where lowered.hasPrefix(prefix) {
             let remainder = lowered.dropFirst(prefix.count)
                 .trimmingCharacters(in: CharacterSet(charactersIn: " :=—–-"))
             guard let first = remainder.first, first.isLetter, first.isASCII else { return nil }
-            // Solo se è davvero una lettera isolata, non l'inizio di una frase.
             let second = remainder.dropFirst().first
             guard second == nil || second == ")" || second == "." || second == " " else { return nil }
             return String(first).uppercased()

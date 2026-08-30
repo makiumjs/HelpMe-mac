@@ -1,14 +1,4 @@
 import Foundation
-
-/// Scrive il markup di un quiz a partire dalle domande.
-///
-/// È l'inverso esatto di `QuizParser`: quello legge, questo scrive. Serve
-/// perché finora il quiz si poteva ottenere solo da un modello — il markup
-/// `- [x] opzione :: spiegazione` a mano non lo digita nessuno, e sbagliare
-/// una parentesi quadra significa una domanda che non si può cliccare.
-///
-/// Il contratto sta in un posto solo, `DidacticMarkup`, e un test verifica
-/// che scrivere e rileggere restituisca le stesse domande.
 public nonisolated enum QuizComposer {
 
     public static func compose(_ questions: [QuizQuestion]) -> String {
@@ -32,13 +22,7 @@ public nonisolated enum QuizComposer {
         return blocks.joined(separator: "\n\n")
     }
 }
-
-/// Una domanda in lavorazione nell'editor.
-///
-/// Separata da `QuizQuestion` perché mentre si scrive è quasi sempre
-/// incompleta — nessuna risposta ancora segnata, opzioni vuote — e un tipo
-/// che pretende di essere valido costringerebbe a inventare valori finti.
-public struct QuizDraftQuestion: Identifiable, Equatable {
+public nonisolated struct QuizDraftQuestion: Identifiable, Equatable {
     public let id = UUID()
     public var prompt: String = ""
     public var options: [QuizDraftOption] = [
@@ -53,10 +37,6 @@ public struct QuizDraftQuestion: Identifiable, Equatable {
         options = question.options.map { QuizDraftOption(text: $0.text, explanation: $0.explanation ?? "") }
         correctIndex = question.options.firstIndex { $0.isCorrect }
     }
-
-    /// Una domanda si può usare quando ha un testo, almeno due opzioni piene
-    /// e una risposta segnata. Prima di allora non finisce nel quiz: uno
-    /// studente che clicca e non riceve riscontro smette di fidarsi.
     public var isComplete: Bool {
         !prompt.trimmingCharacters(in: .whitespaces).isEmpty
             && correctIndex != nil
@@ -87,11 +67,9 @@ public struct QuizDraftQuestion: Identifiable, Equatable {
     }
 }
 
-public struct QuizDraftOption: Identifiable, Equatable {
+public nonisolated struct QuizDraftOption: Identifiable, Equatable {
     public let id = UUID()
     public var text: String = ""
-    /// Il riscontro che lo studente legge dopo aver risposto. Anche sulle
-    /// opzioni sbagliate: deve spiegare l'errore, non solo negarlo.
     public var explanation: String = ""
 
     public init(text: String = "", explanation: String = "") {

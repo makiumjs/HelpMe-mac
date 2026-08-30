@@ -2,13 +2,6 @@ import Foundation
 import AVFoundation
 import SwiftUI
 
-/// Sintesi vocale con evidenziazione karaoke parola per parola.
-///
-/// Il sintetizzatore riporta gli intervalli sul testo che sta effettivamente
-/// pronunciando, non su quello originale: chi disegna l'evidenziazione deve
-/// perciò usare `spokenText`, mai il testo di partenza. Sono due stringhe
-/// diverse — la ripulitura del markdown sposta le posizioni — ed è da questo
-/// disallineamento che nasceva l'evidenziazione sulla parola sbagliata.
 @Observable
 @MainActor
 public final class AudioReaderService: NSObject, AVSpeechSynthesizerDelegate {
@@ -19,8 +12,6 @@ public final class AudioReaderService: NSObject, AVSpeechSynthesizerDelegate {
     public private(set) var isPaused: Bool = false
     public private(set) var currentWordRange: NSRange? = nil
 
-    /// Il testo realmente inviato al sintetizzatore, a cui si riferiscono
-    /// gli intervalli di `currentWordRange`.
     public private(set) var spokenText: String = ""
 
     public override init() {
@@ -28,9 +19,6 @@ public final class AudioReaderService: NSObject, AVSpeechSynthesizerDelegate {
         synthesizer.delegate = self
     }
 
-    /// Prepara il testo per la lettura: toglie i simboli del markdown senza
-    /// spostare nulla, perché ogni simbolo diventa uno spazio della stessa
-    /// lunghezza. Nessun trim: taglierebbe l'inizio e sfaserebbe gli intervalli.
     public static func speakableText(from text: String) -> String {
         text.replacingOccurrences(of: "[*#_`\\[\\]]", with: " ", options: .regularExpression)
     }
@@ -59,7 +47,7 @@ public final class AudioReaderService: NSObject, AVSpeechSynthesizerDelegate {
         if let italianVoice = AVSpeechSynthesisVoice(language: "it-IT") {
             utterance.voice = italianVoice
         }
-        utterance.rate = rate            // calibrato per DSA (standard 0.48)
+        utterance.rate = rate
         utterance.pitchMultiplier = pitch
         utterance.preUtteranceDelay = 0.1
 
@@ -84,17 +72,13 @@ public final class AudioReaderService: NSObject, AVSpeechSynthesizerDelegate {
         currentWordRange = nil
     }
 
-    /// Su iPadOS la sintesi vocale resta muta se la sessione audio non è
-    /// configurata: `.playback` fa suonare l'app anche con l'interruttore
-    /// silenzioso attivo, come serve a uno strumento di lettura assistita.
     private func configureAudioSessionIfNeeded() {
         #if os(iOS)
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
-            // La lettura prosegue comunque: senza sessione il volume segue
-            // l'interruttore fisico, ma la voce non viene interrotta.
+       
         }
         #endif
     }

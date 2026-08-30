@@ -7,7 +7,6 @@ public nonisolated struct DocumentChunk: Identifiable, Codable, Sendable, Equata
     public var text: String
     public var embedding: [Float]
     public var pageNumber: Int?
-    
     public init(id: UUID = UUID(), documentTitle: String, text: String, embedding: [Float] = [], pageNumber: Int? = nil) {
         self.id = id
         self.documentTitle = documentTitle
@@ -34,8 +33,6 @@ public nonisolated final class VectorStore: @unchecked Sendable {
         defer { lock.unlock() }
         chunks.removeAll()
     }
-
-    /// Rimuove i frammenti di un solo documento, lasciando intatti gli altri.
     @discardableResult
     public func removeChunks(ofDocument title: String) -> Int {
         lock.lock()
@@ -50,8 +47,6 @@ public nonisolated final class VectorStore: @unchecked Sendable {
         defer { lock.unlock() }
         return chunks
     }
-    
-    /// Calcolo Cosine Similarity accelerato via Apple Accelerate (vDSP)
     public static func cosineSimilarity(a: [Float], b: [Float]) -> Float {
         guard a.count == b.count, !a.isEmpty else { return 0.0 }
         

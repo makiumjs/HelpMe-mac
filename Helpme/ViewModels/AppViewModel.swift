@@ -1,11 +1,6 @@
 import Foundation
 import SwiftUI
 import SwiftData
-
-/// Stato condiviso dell'app.
-///
-/// È isolato su `@MainActor`: tutte le proprietà osservate da SwiftUI vengono
-/// scritte sul main thread, anche durante lo streaming della risposta dell'IA.
 @Observable
 @MainActor
 public final class AppViewModel {
@@ -21,39 +16,20 @@ public final class AppViewModel {
     public var selectedStudent: StudentProfile? {
         didSet {
             guard selectedStudent !== oldValue else { return }
-            // Il lavoro dell'alunno che si lascia non si butta: si mette via
-            // sulla sua scheda, e si riprende quello dell'alunno che si apre.
-            //
-            // Si salva **solo** se un alunno precedente c'era davvero. Con
-            // @Observable questo osservatore scatta anche dentro
-            // l'inizializzatore, dove oldValue e' nil: ricadendo in quel caso
-            // sull'alunno appena selezionato gli si sovrascriveva il
-            // materiale salvato con lo stato vuoto in memoria, cioe' si
-            // cancellava il lavoro a ogni avvio.
             if let previous = oldValue { store(into: previous) }
             restoreWork(of: selectedStudent)
         }
     }
-
-    /// Mette via testo di partenza e materiale sulla scheda dell'alunno.
-    ///
-    /// Va chiamata quando l'app perde il primo piano e dopo ogni
-    /// generazione: prima il lavoro viveva solo in memoria e ogni chiusura
-    /// dell'app lo cancellava, senza che niente lo avvertisse.
     public func rememberWork() {
         guard let student = selectedStudent else { return }
         store(into: student)
     }
-
     private func store(into student: StudentProfile) {
         guard student.lastSourceText != sourceText
                 || student.lastGeneratedContent != generatedContent else { return }
 
         student.lastSourceText = sourceText
         student.lastGeneratedContent = generatedContent
-
-        // Il glossario si conserva a parte: la spiegazione semplificata lo
-        // riusa piu' tardi, quando il materiale in corso sara' un altro.
         if selectedFormat == .glossary,
            !GlossaryReader.definitions(from: generatedContent).isEmpty {
             student.personalGlossary = generatedContent
@@ -65,37 +41,22 @@ public final class AppViewModel {
         sourceText = student?.lastSourceText ?? ""
         generatedContent = student?.lastGeneratedContent ?? ""
     }
-
     // MARK: - Accessibilità
-
     public var accessibilitySettings: AccessibilitySettings {
         didSet { if accessibilitySettings != oldValue { SettingsStore.save(accessibilitySettings) } }
     }
 
     // MARK: - Configurazione IA
-
-    /// Il blocco che protegge la configurazione dell'IA: la chiave la
-    /// inserisce chi installa l'app, non il docente.
     public let adminLock = AdminLock()
-
-    /// La chiave in chiaro non è scrivibile dall'esterno: passa da
-    /// `setGeminiApiKey(_:)`, che pretende il blocco aperto. Così nessuna
-    /// vista può cambiarla per sbaglio con un binding.
     public private(set) var geminiApiKey: String
-
-    /// Vero se una chiave è configurata su questa macchina.
     public var hasGeminiApiKey: Bool {
         !geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
-
-    /// Le ultime quattro cifre, per riconoscere quale chiave c'è sopra una
-    /// macchina senza mostrarla per intero.
     public var geminiApiKeyHint: String? {
         let trimmed = geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 4 else { return nil }
         return "••••" + trimmed.suffix(4)
     }
-
     public enum ConfigurationError: LocalizedError {
         case locked
         case storageFailure
@@ -109,79 +70,42 @@ public final class AppViewModel {
             }
         }
     }
-
-    /// Scrive la chiave nel portachiavi. Richiede il blocco aperto.
-    ///
-    /// Il valore in memoria si aggiorna **solo se** il portachiavi ha
-    /// accettato la scrittura: altrimenti l'app crederebbe di avere una
-    /// chiave che al riavvio successivo non c'è più, e la generazione
-    /// fallirebbe senza che nulla punti al salvataggio andato male.
     public func setGeminiApiKey(_ key: String) throws {
         guard adminLock.isUnlocked else { throw ConfigurationError.locked }
-
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard KeychainStore.save(trimmed, for: .geminiApiKey) else {
             throw ConfigurationError.storageFailure
         }
         geminiApiKey = trimmed
     }
-
     public var selectedFormat: DidacticFormat {
         didSet { SettingsStore.save(lastFormat: selectedFormat) }
     }
-
-    /// Motore scelto a mano dal docente. Se resta `nil` decide l'app,
-    /// in base a cosa è disponibile e al formato richiesto.
     public var engineOverride: AIEngine? = nil
-
-    /// Disponibilità del modello integrato. Si legge dal sistema all'avvio;
-    /// resta scrivibile perché il caso "nessun motore" — Mac senza Apple
-    /// Intelligence e senza chiave — è un ramo che l'app deve gestire bene e
-    /// che altrimenti si potrebbe provare solo su un Mac vecchio.
     public var systemModelStatus: SystemModelAvailability.Status = SystemModelAvailability.status
-
     public var engineSelector: EngineSelector {
         EngineSelector(hasApiKey: hasGeminiApiKey, systemStatus: systemModelStatus)
     }
-
-    /// Il motore che verrà effettivamente usato.
     public var activeEngine: AIEngine? {
         let selector = engineSelector
         if let engineOverride, selector.usableEngines.contains(engineOverride) { return engineOverride }
         return selector.recommended(for: selectedFormat)
     }
-
     // MARK: - Licenza
 
     public internal(set) var licenseState: LicenseState = LicenseVerifier.verify(
         token: SettingsStore.loadLicenseToken() ?? ""
     )
-
-    /// Rilegge la licenza dal disco e la rivaluta rispetto a adesso.
-    ///
-    /// Serve perché lo stato è calcolato all'avvio: un'app lasciata aperta
-    /// sulla cattedra oltre la mezzanotte dell'ultimo giorno continuerebbe a
-    /// credersi valida. Va chiamata quando l'app torna in primo piano.
     public func refreshLicenseState() {
         licenseState = LicenseVerifier.verify(token: SettingsStore.loadLicenseToken() ?? "")
     }
-
-    /// Registra un codice licenza. Restituisce lo stato risultante, così chi
-    /// lo incolla vede subito se è andato a buon fine o cos'è che non va.
     @discardableResult
     public func activate(licenseToken: String) -> LicenseState {
         let state = LicenseVerifier.verify(token: licenseToken)
-        // Un codice che non regge la verifica non si salva: meglio restare
-        // com'eravamo che sostituire una licenza buona con una storta.
         if case .valid = state { SettingsStore.save(licenseToken: licenseToken) }
         licenseState = state
         return state
     }
-
-    /// Riga di spiegazione da mostrare accanto al pulsante di generazione.
-    ///
-    /// La licenza viene prima: se blocca lei, dire al docente quale motore
-    /// useremmo è un'informazione che non gli serve a niente.
     public var engineRationale: String? {
         if let licenseProblem = LicenseGate.explanation(licenseState) { return licenseProblem }
         if selectedFormat.isComposedLocally {
@@ -194,10 +118,6 @@ public final class AppViewModel {
                 return "Cerca formule, definizioni e dati nel testo, senza IA. Poi taglia: "
                      + "un formulario da banco vale se è corto."
             case .clearExplanation:
-                // Detto senza girarci intorno: senza IA questo formato rende
-                // il testo leggibile e dice dov'è difficile, ma non
-                // semplifica il lessico. Promettere la semplificazione e
-                // consegnare una riformattazione sarebbe peggio che dirlo.
                 return "Senza IA rende il testo leggibile e misura dov'è difficile, "
                      + "ma non riscrive le frasi: quello richiede di sapere quali parole "
                      + "l'alunno ha già. Con una API key le riscrive il modello."
@@ -214,17 +134,13 @@ public final class AppViewModel {
         guard let engine = activeEngine else { return engineSelector.blockingMessage }
         return engineSelector.rationale(for: selectedFormat, engine: engine)
     }
-
     public var canGenerate: Bool {
         guard LicenseGate.canGenerate(licenseState) else { return false }
         if activeEngine != nil { return true }
-
         switch selectedFormat.localComposition {
         case .always:
             return true
         case .fromStructuredText, .fromAnyText:
-            // Non si analizza il testo qui: verrebbe rifatto a ogni battuta.
-            // Se poi la struttura non c'è, la generazione lo dice.
             return !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .none:
             return false
@@ -232,14 +148,7 @@ public final class AppViewModel {
     }
 
     // MARK: - Editor
-
-    /// Oltre questa soglia il documento importato non viene riversato
-    /// nell'editor: un manuale intero lo renderebbe inutilizzabile, e chi
-    /// importa qualcosa di quella mole lo sta indicizzando per la
-    /// consultazione, non per adattarlo tutto. Sono all'incirca venticinque
-    /// pagine.
     static let editorFillLimit = 50_000
-
     public var sourceText: String = ""
     public var generatedContent: String = ""
     public var isGenerating: Bool = false
@@ -247,27 +156,17 @@ public final class AppViewModel {
     public var statusMessage: String? = nil
 
     // MARK: - Indice documentale (RAG)
-
-    /// Copia osservabile dello stato dell'indice: `SemanticSearchService` non
-    /// è `@Observable`, quindi le viste guardano questa.
     public private(set) var indexedDocuments: [IndexedDocument] = []
     public private(set) var isImportingDocuments: Bool = false
-
     public var indexedChunkCount: Int { indexedDocuments.reduce(0) { $0 + $1.chunkCount } }
-
-    /// Vero finché non esiste nessuna scheda alunno: la finestra mostra
-    /// la schermata d'ingresso invece dell'area di lavoro.
     public var hasNoStudents: Bool { students.isEmpty }
 
     // MARK: - Servizi
-
     public let audioReader: AudioReaderService
     public let semanticSearch: SemanticSearchService
     public let docxExporter: DocxExportService
     public let dictation: SpeechDictationService
-
     // MARK: - Inizializzazione
-
     public init(
         modelContext: ModelContext,
         audioReader: AudioReaderService? = nil,
@@ -275,13 +174,10 @@ public final class AppViewModel {
         docxExporter: DocxExportService? = nil
     ) {
         self.modelContext = modelContext
-        // I servizi si costruiscono qui e non come valori di default dei
-        // parametri: quelli verrebbero valutati fuori dal main actor.
         self.audioReader = audioReader ?? AudioReaderService()
         self.semanticSearch = semanticSearch ?? SemanticSearchService()
         self.docxExporter = docxExporter ?? DocxExportService()
         self.dictation = SpeechDictationService()
-
         self.schoolInfo = PersistenceController.loadOrCreateSchoolInfo(in: modelContext)
         self.accessibilitySettings = SettingsStore.loadAccessibilitySettings()
         self.selectedFormat = SettingsStore.loadLastFormat()
@@ -289,12 +185,10 @@ public final class AppViewModel {
 
         reloadFromStore()
         self.selectedStudent = students.first
-        // Le property observer non scattano dentro l'inizializzatore.
         restoreWork(of: self.selectedStudent)
     }
 
     // MARK: - Lettura dall'archivio
-
     public func reloadFromStore() {
         let studentDescriptor = FetchDescriptor<StudentProfile>(
             sortBy: [SortDescriptor(\.createdAt, order: .forward)]
@@ -306,7 +200,6 @@ public final class AppViewModel {
         )
         gloEntries = (try? modelContext.fetch(gloDescriptor)) ?? []
     }
-
     private func persist() {
         do {
             try modelContext.save()
@@ -314,8 +207,6 @@ public final class AppViewModel {
             errorMessage = "Impossibile salvare sul disco: \(error.localizedDescription)"
         }
     }
-
-    /// Scrive su disco le modifiche fatte a una scheda gia' esistente.
     public func saveChanges() {
         persist()
         reloadFromStore()
@@ -329,12 +220,9 @@ public final class AppViewModel {
         reloadFromStore()
         selectedStudent = student
     }
-
     public func deleteStudent(_ student: StudentProfile) {
         let removedId = student.id
         modelContext.delete(student)
-
-        // Le voci GLO dell'alunno vengono rimosse insieme alla scheda.
         for entry in gloEntries where entry.studentId == removedId {
             modelContext.delete(entry)
         }
@@ -373,25 +261,16 @@ public final class AppViewModel {
     }
 
     // MARK: - Indice documentale (RAG)
-
-    /// Indicizza i file scelti dal docente nel selettore di sistema.
-    ///
-    /// L'estrazione gira fuori dal main actor: aprire un PDF di duecento
-    /// pagine sul thread della UI congelerebbe la finestra.
     public func importDocuments(urls: [URL]) async {
         guard !urls.isEmpty else { return }
-
         isImportingDocuments = true
         errorMessage = nil
         statusMessage = nil
-
         let search = semanticSearch
         var importedTitles: [String] = []
         var totalChunks = 0
         var failures: [String] = []
-
         var singleDocumentText: String?
-
         for url in urls {
             do {
                 let imported = try await Task.detached(priority: .userInitiated) {
@@ -404,12 +283,6 @@ public final class AppViewModel {
                 failures.append("\(url.lastPathComponent) — \(error.localizedDescription)")
             }
         }
-
-        // Chi importa *un* documento quasi sempre vuole adattare quello.
-        // Prima il testo spariva nell'indice e l'editor restava vuoto, cosi'
-        // il docente si trovava un pulsante "Genera" che partiva dal nulla e
-        // pescava dall'indice quello che capitava. Non si sovrascrive mai
-        // quello che il docente ha gia' scritto.
         var filledEditor = false
         if let singleDocumentText,
            singleDocumentText.count <= Self.editorFillLimit,
@@ -417,10 +290,8 @@ public final class AppViewModel {
             sourceText = singleDocumentText
             filledEditor = true
         }
-
         refreshIndexState()
         isImportingDocuments = false
-
         if !importedTitles.isEmpty {
             let names = importedTitles.joined(separator: ", ")
             if filledEditor {
@@ -433,35 +304,23 @@ public final class AppViewModel {
                     : "Indicizzati \(Plural.it(importedTitles.count, "documento", "documenti")) (\(names)): \(Plural.it(totalChunks, "frammento", "frammenti")) in tutto."
             }
         }
-
-        // Un file scartato viene detto, non ingoiato: il docente deve sapere
-        // che quel materiale non è finito nell'indice.
         if !failures.isEmpty {
             errorMessage = failures.count == 1
                 ? "Non è stato possibile leggere \(failures[0])"
                 : "Non è stato possibile leggere \(failures.count) file:\n• " + failures.joined(separator: "\n• ")
         }
     }
-
-    /// Indicizza il testo incollato nell'editor.
-    /// Indicizza il testo incollato nell'editor.
-    ///
-    /// La vettorizzazione gira fuori dal main actor come per i documenti
-    /// importati: calcolare un `NLEmbedding` per ogni frammento di una
-    /// lezione lunga bloccherebbe la finestra per secondi.
     public func indexEditorText() async {
         let trimmed = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             errorMessage = "Non c'è testo da indicizzare nell'editor."
             return
         }
-
         let search = semanticSearch
         let text = sourceText
         let count = await Task.detached(priority: .userInitiated) {
             search.indexRawText(text: text)
         }.value
-
         refreshIndexState()
         errorMessage = nil
         statusMessage = "Indicizzati \(Plural.it(count, "frammento", "frammenti")) del testo dell'editor."
@@ -486,12 +345,6 @@ public final class AppViewModel {
     }
 
     // MARK: - Dettatura
-
-    /// Testo dell'editor com'era prima di iniziare a dettare.
-    ///
-    /// Il riconoscitore restituisce ogni volta l'intera frase riconosciuta
-    /// fin lì, non il pezzo nuovo: si ricompone sempre da questa base,
-    /// altrimenti le parole si accumulerebbero in duplicato.
     private var dictationBaseText: String = ""
 
     public var isDictating: Bool { dictation.isRecording }
@@ -499,7 +352,6 @@ public final class AppViewModel {
     public func toggleDictation() async {
         dictation.isRecording ? stopDictation() : await startDictation()
     }
-
     public func startDictation() async {
         dictationBaseText = sourceText
         errorMessage = nil
@@ -507,14 +359,11 @@ public final class AppViewModel {
         await dictation.start()
         if let message = dictation.errorMessage { errorMessage = message }
     }
-
-    /// Riscrive l'editor con la trascrizione corrente.
     public func applyLiveDictation() {
         let transcript = dictation.liveTranscript
         guard !transcript.isEmpty else { return }
         sourceText = SpeechDictationService.merged(existing: dictationBaseText, dictated: transcript)
     }
-
     public func stopDictation() {
         dictation.stop()
         applyLiveDictation()
@@ -529,7 +378,6 @@ public final class AppViewModel {
     }
 
     // MARK: - Generazione del materiale didattico
-
     public func generateMaterial() async {
         guard let student = selectedStudent else {
             errorMessage = "Seleziona prima una scheda alunno."
@@ -540,16 +388,11 @@ public final class AppViewModel {
             errorMessage = LicenseGate.explanation(licenseState)
             return
         }
-
-        // I formati che si compongono da soli non chiedono niente a nessun
-        // modello, e nemmeno un testo di partenza: quello che serve è già
-        // nella scheda dell'alunno.
         if selectedFormat.isComposedLocally {
             composeLocally(for: student)
             rememberWork()
             return
         }
-
         guard !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             errorMessage = "Inserisci il testo base della lezione o della verifica curricolare."
             return
@@ -558,19 +401,11 @@ public final class AppViewModel {
             errorMessage = SourceTextCheck.instructionExplanation(for: sourceText)
             return
         }
-
-        // Il glossario si estrae dal testo senza modello. Se però il docente
-        // ha scelto un motore a mano, vuol dire che vuole anche le
-        // definizioni scritte: gliele si lascia chiedere.
         if selectedFormat.localComposition == .fromAnyText, engineOverride == nil {
             composeFromText(for: student)
             rememberWork()
             return
         }
-
-        // Se il testo è davvero una verifica, la equipollente si ricostruisce
-        // senza modello: i contenuti sono già quelli giusti, li ha scelti il
-        // docente curricolare, e l'equipollenza sta nel mantenerli.
         if selectedFormat.localComposition == .fromStructuredText {
             let exam = ExamParser.parse(sourceText)
             if !exam.isEmpty {
@@ -585,12 +420,10 @@ public final class AppViewModel {
                 return
             }
         }
-
         guard let engine = activeEngine else {
             errorMessage = engineSelector.blockingMessage
             return
         }
-
         isGenerating = true
         generatedContent = ""
         errorMessage = nil
@@ -604,11 +437,6 @@ public final class AppViewModel {
             let result = try await service.generateStreaming(prompt: prompt) { token in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
-                    // Si sostituisce il segnaposto solo nella coda del testo,
-                    // non nell'intero accumulato: rifare la scansione completa
-                    // a ogni token costa quadraticamente sul main actor, e su
-                    // una verifica lunga si vede. La finestra tiene conto di un
-                    // segnaposto spezzato a metà tra due token.
                     let tail = self.generatedContent.suffix(StudentPseudonymizer.placeholder.count)
                     let head = self.generatedContent.dropLast(tail.count)
                     let rewritten = StudentPseudonymizer.restoreIdentity(
@@ -618,7 +446,6 @@ public final class AppViewModel {
                     self.generatedContent = String(head) + rewritten
                 }
             }
-            // Il testo definitivo sostituisce quello accumulato in streaming.
             generatedContent = StudentPseudonymizer.restoreIdentity(in: result, name: studentName)
             rememberWork()
         } catch {
@@ -627,8 +454,6 @@ public final class AppViewModel {
 
         isGenerating = false
     }
-
-    /// Mette nel materiale il testo riscritto dal docente nel cantiere.
     public func applySimplifiedText(_ text: String, rewritten: Int, gulpease: Int) {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         generatedContent = text
@@ -640,8 +465,6 @@ public final class AppViewModel {
               + "Indice Gulpease \(gulpease)/100."
         rememberWork()
     }
-
-    /// Mette nel materiale la mappa costruita dal docente.
     public func applyMindmap(_ nodes: [MindmapNode]) {
         guard !nodes.isEmpty else { return }
         generatedContent = MindmapComposer.compose(nodes)
@@ -650,8 +473,6 @@ public final class AppViewModel {
         statusMessage = "Mappa pronta senza IA. Lo studente la trova navigabile nella sua scheda."
         rememberWork()
     }
-
-    /// Mette nel materiale il quiz scritto a mano dal docente.
     public func applyQuiz(_ questions: [QuizQuestion]) {
         guard !questions.isEmpty else { return }
         generatedContent = QuizComposer.compose(questions)
@@ -661,8 +482,6 @@ public final class AppViewModel {
         statusMessage = "\(Plural.it(questions.count, "domanda pronta", "domande pronte")) senza IA. "
             + "Lo studente le trova nella sua scheda, cliccabili."
     }
-
-    /// I formati che si ricavano da un testo qualsiasi, senza modello.
     private func composeFromText(for student: StudentProfile) {
         errorMessage = nil
 
@@ -695,7 +514,6 @@ public final class AppViewModel {
             errorMessage = "Questo formato non ha ancora una composizione senza IA."
         }
     }
-
     private func composeEquipollente(_ exam: ParsedExam, for student: StudentProfile) {
         errorMessage = nil
         generatedContent = EquipollenteComposer.compose(.init(
@@ -711,8 +529,6 @@ public final class AppViewModel {
         statusMessage = "Ricostruita senza IA da \(quesiti). Aggiungi tu la scomposizione guidata "
             + "dove serve: è la parte che richiede di conoscere l'alunno."
     }
-
-    /// Compone il materiale senza modello linguistico.
     private func composeLocally(for student: StudentProfile) {
         errorMessage = nil
         switch selectedFormat {
@@ -732,13 +548,6 @@ public final class AppViewModel {
             errorMessage = "Questo formato non ha ancora una composizione senza IA."
         }
     }
-
-    /// Traduce l'errore in una frase su cui il docente possa agire davvero.
-    ///
-    /// Il caso che conta è il contesto esaurito a documento già cominciato:
-    /// lì sappiamo che a sforare non è stato il testo di partenza ma la
-    /// lunghezza di quello che il modello stava scrivendo, e possiamo dirlo
-    /// invece di far accorciare una lezione che non c'entra.
     func failureMessage(for error: Error) -> String {
         guard let modelError = error as? SystemModelError,
               modelError == .contextTooLong,
@@ -752,21 +561,10 @@ public final class AppViewModel {
         Con una API key di Google Gemini nelle impostazioni arriva in fondo.
         """
     }
-
-    /// Assembla il prompt. I dati dell'alunno passano dal pseudonimizzatore:
-    /// nome e riferimenti diagnostici non lasciano il dispositivo.
     func buildPrompt(for student: StudentProfile, engine: AIEngine? = nil) -> String {
-        // Il modello integrato non regge le tabelle markdown: gli si chiede
-        // la stessa cosa in forma di elenco. Vedi DidacticFormat.systemPrompt.
         let usesCloud = (engine ?? activeEngine) == .gemini
         let template = selectedFormat.systemPrompt(tablesSupported: usesCloud)
             .replacingOccurrences(of: "{INTEREST}", with: student.interest)
-
-        // Quando il testo di partenza e' gia' sostanzioso, i frammenti
-        // ripescati vengono quasi sempre dallo stesso documento: si
-        // spedirebbe due volte la stessa cosa, proprio dove lo spazio manca.
-        // Il recupero documentale serve a integrare un testo breve, non a
-        // ripetere un testo lungo.
         let ragChunks = sourceText.count > 1500
             ? []
             : semanticSearch.searchRelevantContext(query: sourceText, topK: 2)
@@ -778,15 +576,12 @@ public final class AppViewModel {
 
         return """
         \(template)
-
         \(StudentPseudonymizer.promptProfile(for: student))
         \(ragContext)
-
         TESTO / VERIFICA CURRICOLARE DA TRASFORMARE:
         \"\"\"
         \(sourceText)
         \"\"\"
-
         Genera adesso il materiale didattico completo e pronto all'uso.
         """
     }

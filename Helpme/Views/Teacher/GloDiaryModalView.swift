@@ -3,24 +3,19 @@ import SwiftUI
 public struct GloDiaryModalView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable public var teacherViewModel: TeacherViewModel
-    
     @State private var selectedDimensionFilter: PeiDimension? = nil
     @State private var showNewEntryForm: Bool = false
-    
     @State private var newTopic: String = ""
     @State private var newFormat: String = "Verifica Equipollente"
     @State private var newDimension: PeiDimension = .cognitive
     @State private var newAutonomy: String = "Autonomia con supporto visivo iniziale"
     @State private var newNotes: String = ""
-    
     public init(teacherViewModel: TeacherViewModel) {
         self.teacherViewModel = teacherViewModel
     }
-    
     public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Header
-            HStack {
+             HStack {
                 Image(systemName: "book.pages.fill")
                     .font(.title)
                     .foregroundColor(Color.institutional)
@@ -33,19 +28,14 @@ public struct GloDiaryModalView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
                 Spacer()
-                
                 Button(action: { showNewEntryForm.toggle() }) {
                     Label("Nuova Voce", systemImage: "plus.circle.fill")
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Color.institutional)
             }
-            
             Divider()
-            
-            // Filtri Dimensioni Ministeriali
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     Button(action: { selectedDimensionFilter = nil }) {
@@ -58,7 +48,6 @@ public struct GloDiaryModalView: View {
                             .cornerRadius(16)
                     }
                     .buttonStyle(.plain)
-                    
                     ForEach(PeiDimension.allCases, id: \.self) { dim in
                         Button(action: { selectedDimensionFilter = dim }) {
                             HStack(spacing: 4) {
@@ -76,8 +65,6 @@ public struct GloDiaryModalView: View {
                     }
                 }
             }
-            
-            // Form Nuova Voce se attiva
             if showNewEntryForm {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Aggiungi Nota nel Registro GLO")
@@ -92,12 +79,9 @@ public struct GloDiaryModalView: View {
                                 Text(dim.shortLabel).tag(dim)
                             }
                         }
-                        
                         TextField("Livello Autonomia:", text: $newAutonomy)
                     }
-                    
                     TextField("Osservazioni per il GLO / Consiglio di Classe:", text: $newNotes)
-                    
                     HStack {
                         Spacer()
                         Button("Annulla") { showNewEntryForm = false }
@@ -124,8 +108,6 @@ public struct GloDiaryModalView: View {
                 .background(Color.secondary.opacity(0.08))
                 .cornerRadius(8)
             }
-            
-            // Elenco Voci Diario
             List {
                 let filtered = teacherViewModel.appViewModel.gloEntries.filter { entry in
                     if let filter = selectedDimensionFilter {
@@ -133,7 +115,6 @@ public struct GloDiaryModalView: View {
                     }
                     return true
                 }
-                
                 if filtered.isEmpty {
                     Text("Nessuna voce registrata per questa dimensione.")
                         .foregroundColor(.secondary)
@@ -148,17 +129,13 @@ public struct GloDiaryModalView: View {
                                     .font(.caption)
                                     .bold()
                                     .foregroundColor(Color.institutional)
-                                
                                 Spacer()
-                                
                                 Text(entry.date, style: .date)
                                     .font(.caption2)
                                     .foregroundColor(.secondary)
                             }
-                            
                             Text(entry.topic)
                                 .font(.headline)
-                            
                             HStack {
                                 Label(entry.formatUsed, systemImage: "doc.text.fill")
                                     .font(.caption)
@@ -168,7 +145,6 @@ public struct GloDiaryModalView: View {
                                     .font(.caption)
                                     .italic()
                             }
-                            
                             if !entry.notes.isEmpty {
                                 Text(entry.notes)
                                     .font(.subheadline)
@@ -186,8 +162,6 @@ public struct GloDiaryModalView: View {
                 }
             }
             .listStyle(.inset)
-            
-            // Footer
             HStack {
                 Spacer()
                 Button("Chiudi") {

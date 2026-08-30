@@ -11,19 +11,14 @@ public struct FocusTimerWidget: View {
     public var body: some View {
         HStack(spacing: 14) {
             timeDisplay
-
-            // Durante la pausa attiva i preset di studio non hanno senso.
             if viewModel.phase == .idle || viewModel.phase == .focusing {
                 presetButtons
             }
-
             primaryButton
             badgesButton
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        // Il widget tiene la sua larghezza naturale: sono gli altri
-        // controlli della barra a doversi stringere, non l'orologio.
         .fixedSize(horizontal: true, vertical: false)
         .background(Color.appWindowBackground)
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -35,7 +30,6 @@ public struct FocusTimerWidget: View {
     }
 
     // MARK: - Conteggio
-
     private var timeDisplay: some View {
         HStack(spacing: 6) {
             Image(systemName: phaseSymbol)
@@ -48,9 +42,6 @@ public struct FocusTimerWidget: View {
                     .font(.system(size: 18, weight: .bold, design: .monospaced))
                     .monospacedDigit()
                     .foregroundColor(.primary)
-                    // In una finestra stretta il conteggio veniva mandato a
-                    // capo carattere per carattere: "03:00" diventava tre
-                    // righe. L'orologio non si comprime, mai.
                     .fixedSize()
 
                 if viewModel.phase != .idle {
@@ -113,7 +104,6 @@ public struct FocusTimerWidget: View {
     }
 
     // MARK: - Comando principale
-
     private var primaryButton: some View {
         Button(action: {
             withAnimation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.75)) {
@@ -136,7 +126,6 @@ public struct FocusTimerWidget: View {
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .accessibilityLabel(primaryTitle)
     }
-
     private var primaryTitle: String {
         switch viewModel.phase {
         case .idle:            return "Avvia Focus"
@@ -145,7 +134,6 @@ public struct FocusTimerWidget: View {
         case .onBreak:         return viewModel.isTimerRunning ? "Sospendi" : "Riprendi"
         }
     }
-
     private var primarySymbol: String {
         switch viewModel.phase {
         case .idle:            return "play.fill"
@@ -156,7 +144,6 @@ public struct FocusTimerWidget: View {
     }
 
     // MARK: - Traguardi
-
     private var badgesButton: some View {
         Button(action: { viewModel.activeSheet = .badges }) {
             HStack(spacing: 4) {
@@ -180,7 +167,6 @@ public struct FocusTimerWidget: View {
     }
 
     // MARK: - Aspetto per fase
-
     private var phaseTint: Color {
         switch viewModel.phase {
         case .idle:            return Color.institutional
@@ -189,7 +175,6 @@ public struct FocusTimerWidget: View {
         case .onBreak:         return .blue
         }
     }
-
     private var phaseSymbol: String {
         switch viewModel.phase {
         case .idle:            return "timer"
@@ -198,7 +183,6 @@ public struct FocusTimerWidget: View {
         case .onBreak:         return "figure.walk.motion"
         }
     }
-
     private var phaseLabel: String {
         switch viewModel.phase {
         case .idle:            return "pronto"

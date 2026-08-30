@@ -1,19 +1,9 @@
 import SwiftUI
-
-/// La mappa concettuale come struttura navigabile, non come blocco di testo.
-///
-/// Ogni ramo si apre e si chiude: per chi ha ADHD poter nascondere i rami
-/// che non servono adesso è la differenza tra una mappa e un muro di parole.
 public struct MindmapCardView: View {
-    /// I nodi arrivano dal view model insieme allo stato di apertura dei
-    /// rami: gli identificativi devono restare gli stessi tra una passata di
-    /// layout e l'altra, altrimenti un ramo chiuso si riaprirebbe da solo.
     @Bindable public var viewModel: StudentReaderViewModel
     public let settings: AccessibilitySettings
     public var onClose: () -> Void
-
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     public init(
         viewModel: StudentReaderViewModel,
         settings: AccessibilitySettings,
@@ -23,16 +13,12 @@ public struct MindmapCardView: View {
         self.settings = settings
         self.onClose = onClose
     }
-
     private var nodes: [MindmapNode] { viewModel.mindmapNodes }
     private var collapsed: Set<UUID> { viewModel.collapsedMindmapNodes }
-
     public var body: some View {
         VStack(spacing: 0) {
             header
-
             Divider()
-
             if nodes.isEmpty {
                 emptyState
             } else {
@@ -50,15 +36,12 @@ public struct MindmapCardView: View {
         .themedSurface(settings)
         .frame(minWidth: 460, idealWidth: 620, minHeight: 380, idealHeight: 560)
     }
-
     // MARK: - Intestazione
-
     private var header: some View {
         HStack(spacing: 10) {
             Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(settings.theme.accent)
-
             VStack(alignment: .leading, spacing: 1) {
                 Text("Mappa concettuale")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -67,9 +50,7 @@ public struct MindmapCardView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(settings.theme.text.opacity(0.65))
             }
-
             Spacer()
-
             if !nodes.isEmpty {
                 Button(allCollapsed ? "Apri tutto" : "Chiudi tutto") {
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
@@ -79,7 +60,6 @@ public struct MindmapCardView: View {
                 .buttonStyle(.bordered)
                 .font(.system(size: 11, weight: .medium, design: .rounded))
             }
-
             Button("Chiudi", action: onClose)
                 .buttonStyle(.bordered)
                 .keyboardShortcut(.cancelAction)
@@ -88,13 +68,11 @@ public struct MindmapCardView: View {
         .padding(.vertical, 14)
         .background(settings.theme.background)
     }
-
     private var summaryLine: String {
         let total = nodes.reduce(0) { $0 + $1.totalCount }
         let levels = nodes.map(\.depth).max() ?? 0
         return "\(Plural.it(total, "concetto", "concetti")) su \(Plural.it(levels, "livello", "livelli")) — tocca un ramo per aprirlo o chiuderlo"
     }
-
     private var emptyState: some View {
         VStack(spacing: 10) {
             Image(systemName: "questionmark.folder")
@@ -114,23 +92,14 @@ public struct MindmapCardView: View {
     }
 
     // MARK: - Rami
-
-    /// Una riga della mappa già appiattita.
-    ///
-    /// L'albero non si disegna per ricorsione: una funzione di vista che
-    /// richiama sé stessa non può avere tipo di ritorno opaco, e passare da
-    /// `AnyView` costerebbe una cancellazione di tipo a ogni nodo. Qui la
-    /// gerarchia diventa un elenco piatto con il livello come rientro.
     private struct Row: Identifiable {
         let id: UUID
         let node: MindmapNode
         let level: Int
         let isCollapsed: Bool
-
         var hasChildren: Bool { !node.children.isEmpty }
         var hiddenCount: Int { isCollapsed ? node.totalCount - 1 : 0 }
     }
-
     private var visibleRows: [Row] {
         var rows: [Row] = []
 
@@ -140,15 +109,12 @@ public struct MindmapCardView: View {
             guard !isCollapsed else { return }
             for child in node.children { walk(child, level: level + 1) }
         }
-
         for node in nodes { walk(node, level: 0) }
         return rows
     }
-
     private func branch(_ row: Row) -> some View {
         let level = row.level
         let node = row.node
-
         return Button {
             guard row.hasChildren else { return }
             withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
@@ -164,7 +130,6 @@ public struct MindmapCardView: View {
                     .font(.system(size: row.hasChildren ? 11 : 5, weight: .bold))
                     .foregroundStyle(tint(for: level))
                     .frame(width: 14)
-
                 VStack(alignment: .leading, spacing: 3) {
                     Text(node.title)
                         .font(settings.fontFamily.font(
@@ -184,7 +149,6 @@ public struct MindmapCardView: View {
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-
                     if row.hiddenCount > 0 {
                         Text(row.hiddenCount == 1
                              ? "1 sotto-concetto nascosto"
@@ -193,7 +157,6 @@ public struct MindmapCardView: View {
                             .foregroundStyle(tint(for: level).opacity(0.9))
                     }
                 }
-
                 Spacer(minLength: 0)
             }
             .padding(.vertical, 8)
@@ -208,12 +171,7 @@ public struct MindmapCardView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        // Le foglie non si aprono, ma `.disabled()` ne sbiadirebbe il testo:
-        // sono la maggior parte della mappa, e resterebbero le righe meno
-        // leggibili proprio in un'app per la dislessia.
         .allowsHitTesting(row.hasChildren)
-        // Il rientro rende visibile la gerarchia; le guide verticali dicono
-        // a quale ramo appartiene una riga senza doverla risalire a occhio.
         .padding(.leading, CGFloat(level) * 22)
         .overlay(alignment: .leading) { indentGuides(upTo: level) }
         .accessibilityLabel(accessibilityLabel(for: row))
@@ -251,18 +209,9 @@ public struct MindmapCardView: View {
         default: return max(13, base - 1)
         }
     }
-
-    /// I livelli restano tutti sulla tinta del tema scelto.
-    ///
-    /// Prima prendevano in prestito i colori della sillabazione, che sono
-    /// tarati per alternare sillabe vicine: la mappa finiva blu e lavanda
-    /// dentro un'app verde. La gerarchia si legge già dal rientro, dalle
-    /// guide verticali e dal corpo del testo; il colore non deve aggiungere
-    /// rumore, solo profondità.
     private func tint(for level: Int) -> Color {
         settings.theme.accent
     }
-
     private func fillOpacity(for level: Int) -> Double {
         switch level {
         case 0:  return 0.16
@@ -270,7 +219,6 @@ public struct MindmapCardView: View {
         default: return 0.05
         }
     }
-
     private func strokeOpacity(for level: Int) -> Double {
         switch level {
         case 0:  return 0.45
@@ -278,13 +226,11 @@ public struct MindmapCardView: View {
         default: return 0.16
         }
     }
-
     // MARK: - Apri / chiudi tutto
 
     private var allCollapsed: Bool {
         !collapsed.isEmpty
     }
-
     private func collapseEverything() {
         var identifiers: Set<UUID> = []
         func walk(_ node: MindmapNode) {

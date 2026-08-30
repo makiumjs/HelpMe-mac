@@ -1,10 +1,4 @@
 import SwiftUI
-
-/// Presenta il pannello richiesto.
-///
-/// Esiste perché i pannelli servono da due punti diversi — la schermata
-/// d'ingresso, quando non c'è ancora nessun alunno, e la barra laterale — e
-/// duplicarli aveva già prodotto due pulsanti che non aprivano niente.
 struct TeacherSheetPresenter: View {
     let sheet: TeacherSheet
     @Bindable var appViewModel: AppViewModel
@@ -32,8 +26,6 @@ struct TeacherSheetPresenter: View {
             SchoolHeaderConfigModal(teacherViewModel: teacherViewModel)
         }
     }
-
-    /// Meglio dirlo che aprire un pannello vuoto.
     private var missingStudent: some View {
         VStack(spacing: 14) {
             Image(systemName: "person.crop.circle.badge.questionmark")

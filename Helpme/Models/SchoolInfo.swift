@@ -1,8 +1,5 @@
 import Foundation
 import SwiftData
-
-/// Intestazione istituzionale usata nei documenti .docx esportati.
-/// Ne esiste una sola istanza nell'archivio, recuperata da `PersistenceController`.
 @Model
 public final class SchoolInfo {
     public var instituteName: String
@@ -30,18 +27,6 @@ public final class SchoolInfo {
         self.teacherName = teacherName
         self.primaryColorHex = primaryColorHex
     }
-
-    /// L'anno scolastico corrente, calcolato invece che scritto a mano.
-    ///
-    /// Era una costante nel sorgente — "A.S. 2025/2026" — e come tutte le
-    /// date scritte a mano era gia' scaduta. Il campo si puo' correggere dal
-    /// pannello dell'intestazione, ma il guaio e' che nessuno se ne accorge:
-    /// il documento esce con l'anno sbagliato e finisce cosi' nel fascicolo
-    /// dell'alunno.
-    ///
-    /// Lo stacco e' al primo agosto, non al primo settembre: e' ad agosto che
-    /// i docenti di sostegno preparano il materiale per l'anno che comincia,
-    /// e un PEI scritto il 29 agosto riguarda l'anno nuovo, non quello finito.
     nonisolated public static func currentSchoolYear(on date: Date = Date()) -> String {
         var calendario = Calendar(identifier: .gregorian)
         calendario.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current

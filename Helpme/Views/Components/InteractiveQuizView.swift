@@ -1,20 +1,9 @@
 import SwiftUI
-
-/// Il quiz di autoverifica, con risposte cliccabili e riscontro immediato.
-///
-/// Prima l'IA generava le domande e restavano testo: lo studente leggeva
-/// anche la risposta giusta insieme alla domanda, e l'autoverifica non
-/// verificava niente.
 public struct InteractiveQuizView: View {
-    /// Domande e risposte vivono nel view model: restano quelle anche se la
-    /// scheda si chiude, e i loro identificativi non cambiano sotto i piedi
-    /// della selezione a ogni passata di layout.
     @Bindable public var viewModel: StudentReaderViewModel
     public let settings: AccessibilitySettings
     public var onClose: () -> Void
-
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     public init(
         viewModel: StudentReaderViewModel,
         settings: AccessibilitySettings,
@@ -24,15 +13,12 @@ public struct InteractiveQuizView: View {
         self.settings = settings
         self.onClose = onClose
     }
-
     private var questions: [QuizQuestion] { viewModel.quizQuestions }
     private var currentIndex: Int { viewModel.quizIndex }
-
     public var body: some View {
         VStack(spacing: 0) {
             header
             Divider()
-
             if questions.isEmpty {
                 emptyState
             } else {
@@ -57,27 +43,21 @@ public struct InteractiveQuizView: View {
     private var question: QuizQuestion? {
         questions.indices.contains(currentIndex) ? questions[currentIndex] : nil
     }
-
     private var chosenOptionId: UUID? {
         guard let question else { return nil }
         return viewModel.chosenOptionId(for: question.id)
     }
-
     private var isAnswered: Bool { chosenOptionId != nil }
-
     private var chosenOption: QuizOption? {
         guard let question, let chosenOptionId else { return nil }
         return question.options.first { $0.id == chosenOptionId }
     }
-
     // MARK: - Intestazione
-
     private var header: some View {
         HStack(spacing: 10) {
             Image(systemName: "checklist")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(settings.theme.accent)
-
             VStack(alignment: .leading, spacing: 1) {
                 Text("Quiz di autoverifica")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -88,9 +68,7 @@ public struct InteractiveQuizView: View {
                         .foregroundStyle(settings.theme.text.opacity(0.65))
                 }
             }
-
             Spacer()
-
             if answeredCount > 0 {
                 Button("Ricomincia") {
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
@@ -100,9 +78,6 @@ public struct InteractiveQuizView: View {
                 .buttonStyle(.bordered)
                 .font(.system(size: 11, weight: .medium, design: .rounded))
             }
-
-            // Chiudere non è l'azione principale: la protagonista è la
-            // domanda. Un pulsante pieno qui ruberebbe la scena.
             Button("Chiudi", action: onClose)
                 .buttonStyle(.bordered)
                 .keyboardShortcut(.cancelAction)
@@ -156,7 +131,6 @@ public struct InteractiveQuizView: View {
         let chosen = chosenOptionId == option.id
         let revealed = isAnswered
         let letter = String(UnicodeScalar(65 + min(index, 25))!)
-
         return Button {
             guard !isAnswered else { return }
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) {
@@ -193,7 +167,6 @@ public struct InteractiveQuizView: View {
             }
             .padding(.vertical, 11)
             .padding(.horizontal, 13)
-            // 44pt di altezza minima: il requisito di target tattile.
             .frame(minHeight: 44)
             .background(rowFill(option: option, chosen: chosen, revealed: revealed))
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -204,17 +177,11 @@ public struct InteractiveQuizView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        // Non `.disabled()`: SwiftUI ne sbiadirebbe la label, e dopo la
-        // risposta il testo più importante da leggere — quello corretto —
-        // sarebbe quello con meno contrasto. Qui si toglie solo il tocco.
         .allowsHitTesting(!isAnswered)
         .accessibilityLabel("Risposta \(letter): \(option.text)")
         .accessibilityHint(isAnswered ? statusWord(option: option, chosen: chosen) : "Tocca per rispondere")
         .accessibilityAddTraits(.isButton)
     }
-
-    /// Il pallino con la lettera cresce insieme al testo: a 28pt un cerchio
-    /// da 26 sembrerebbe un residuo.
     private var markerDiameter: CGFloat {
         max(26, CGFloat(settings.fontSize) + 9)
     }
@@ -223,23 +190,18 @@ public struct InteractiveQuizView: View {
         if option.isCorrect { return "Risposta corretta" }
         return chosen ? "La tua risposta, sbagliata" : "Risposta sbagliata"
     }
-
-    // I colori dell'esito non si affidano solo alla tinta: c'è sempre anche
-    // un simbolo, perché il verde e il rosso non li distinguono tutti.
     private func badgeFill(option: QuizOption, chosen: Bool, revealed: Bool) -> Color {
         guard revealed else { return settings.theme.text.opacity(0.12) }
         if option.isCorrect { return Color(hex: 0x1B7F3B) }
         if chosen { return Color(hex: 0xB3261E) }
         return settings.theme.text.opacity(0.12)
     }
-
     private func rowFill(option: QuizOption, chosen: Bool, revealed: Bool) -> Color {
         guard revealed else { return settings.theme.text.opacity(0.05) }
         if option.isCorrect { return Color(hex: 0x1B7F3B).opacity(0.13) }
         if chosen { return Color(hex: 0xB3261E).opacity(0.11) }
         return settings.theme.text.opacity(0.04)
     }
-
     private func rowStroke(option: QuizOption, chosen: Bool, revealed: Bool) -> Color {
         guard revealed else { return settings.theme.text.opacity(0.18) }
         if option.isCorrect { return Color(hex: 0x1B7F3B) }
@@ -269,9 +231,6 @@ public struct InteractiveQuizView: View {
                         .foregroundStyle(settings.theme.text)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-
-                // Prima la spiegazione della scelta fatta, poi quella della
-                // risposta giusta: capire l'errore vale più della soluzione.
                 if let explanation = chosen.explanation {
                     Text(explanation)
                         .font(settings.fontFamily.font(size: CGFloat(settings.fontSize) - 1))
@@ -313,8 +272,6 @@ public struct InteractiveQuizView: View {
             }
             .buttonStyle(.bordered)
             .disabled(currentIndex == 0)
-
-            // Avanzamento leggibile anche senza contare le domande.
             ProgressView(value: Double(answeredCount), total: Double(max(1, questions.count)))
                 .tint(settings.theme.accent)
                 .frame(maxWidth: .infinity)
@@ -335,7 +292,6 @@ public struct InteractiveQuizView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
     }
-
     private var answeredCount: Int { viewModel.quizAnsweredCount }
     private var correctCount: Int { viewModel.quizCorrectCount }
 }

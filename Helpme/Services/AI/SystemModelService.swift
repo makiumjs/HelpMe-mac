@@ -4,12 +4,6 @@ import Foundation
 import FoundationModels
 #endif
 
-/// Inferenza con il modello integrato in macOS / iPadOS (Apple Intelligence).
-///
-/// Non richiede API key né download: il modello è già nel sistema e i dati
-/// non lasciano il dispositivo. In cambio è un modello compatto, con una
-/// finestra di contesto stretta: regge bene le riscritture e le estrazioni,
-/// meno i documenti lunghi a vincoli multipli.
 @available(macOS 26.0, iOS 26.0, *)
 public final class SystemModelService: LLMInferenceService, @unchecked Sendable {
 
@@ -49,7 +43,7 @@ public final class SystemModelService: LLMInferenceService, @unchecked Sendable 
             var emitted = ""
 
             for try await snapshot in stream {
-                // Gli snapshot sono cumulativi: il protocollo vuole i delta.
+         
                 let text = snapshot.content
                 guard text.count > emitted.count else { continue }
                 let delta = String(text.dropFirst(emitted.count))
@@ -57,10 +51,6 @@ public final class SystemModelService: LLMInferenceService, @unchecked Sendable 
                 onToken(delta)
             }
 
-            // Questo modello, quando incontra qualcosa che non sa chiudere,
-            // riempie la coda di spazi: una volta misurati quindicimila
-            // caratteri di spazi dopo ottocento di contenuto. Nel documento
-            // finirebbero come pagine bianche.
             let cleaned = emitted.replacingOccurrences(
                 of: "[ \t]+$", with: "", options: [.regularExpression]
             ).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -83,9 +73,6 @@ public final class SystemModelService: LLMInferenceService, @unchecked Sendable 
 
 // MARK: - Errori
 
-/// Errori del modello integrato, espressi senza portare i tipi di
-/// FoundationModels fuori da questo file: i case con valori associati non
-/// possono essere marcati come disponibili solo su macOS 26.
 public enum SystemModelError: LocalizedError, Equatable {
     case frameworkMissing
     case emptyResponse
@@ -109,12 +96,7 @@ public enum SystemModelError: LocalizedError, Equatable {
         case .modelDownloading:
             return "Il modello integrato si sta ancora scaricando. Riprova tra qualche minuto."
         case .contextTooLong:
-            // La finestra del modello integrato contiene il testo di partenza
-            // e il documento che sta scrivendo, insieme. Su un formato lungo
-            // si esaurisce mentre genera, anche se il testo di partenza era di
-            // due righe: dire solo "accorcia il testo" manda il docente a
-            // tagliare la lezione senza che serva a niente.
-            return "Il modello integrato ha esaurito lo spazio disponibile: la sua memoria di lavoro deve contenere insieme il testo di partenza e il documento da produrre. Se ne è già comparso un pezzo, è solo l'inizio e non va consegnato. Accorcia il testo di partenza, oppure usa Google Gemini che regge documenti molto più lunghi."
+               return "Il modello integrato ha esaurito lo spazio disponibile: la sua memoria di lavoro deve contenere insieme il testo di partenza e il documento da produrre. Se ne è già comparso un pezzo, è solo l'inizio e non va consegnato. Accorcia il testo di partenza, oppure usa Google Gemini che regge documenti molto più lunghi."
         case .refusedByGuardrail:
             return "Il modello integrato ha rifiutato di elaborare questo contenuto. Se il testo è didatticamente legittimo, usa Google Gemini."
         case .generationFailed(let detail):
@@ -125,8 +107,6 @@ public enum SystemModelError: LocalizedError, Equatable {
 
 // MARK: - Disponibilità
 
-/// Interroga il sistema senza costringere il resto dell'app a conoscere
-/// FoundationModels o a preoccuparsi della versione di macOS.
 public nonisolated enum SystemModelAvailability {
 
     public enum Status: Equatable {
@@ -137,7 +117,6 @@ public nonisolated enum SystemModelAvailability {
         case systemTooOld
         case unknown
 
-        /// Messaggio da mostrare accanto alla scelta del motore.
         public var explanation: String? {
             switch self {
             case .available:

@@ -1,13 +1,13 @@
 import Foundation
 
 public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
-    case equipollenteExam = "equipollente_exam" // Verifica Equipollente (+30% tempo, quesiti guidati, griglia)
-    case deskCheatSheet = "desk_cheat_sheet"   // Formulario & Scheda da Banco (L. 170/2010)
-    case pdpSummary = "pdp_summary"            // Scheda Sintesi PDP / Misure
-    case conceptMap = "concept_map"            // Mappa Concettuale Gerarchica
-    case glossary = "glossary"                 // Glossario Termini con Analogie
-    case clearExplanation = "clear_explanation"// Spiegazione Semplificata ad Alta Leggibilità
-    case interactiveQuiz = "interactive_quiz"  // Quiz di Autoverifica Strutturato
+    case equipollenteExam = "equipollente_exam"
+    case deskCheatSheet = "desk_cheat_sheet"
+    case pdpSummary = "pdp_summary"
+    case conceptMap = "concept_map"
+    case glossary = "glossary"
+    case clearExplanation = "clear_explanation"
+    case interactiveQuiz = "interactive_quiz"
     
     public var title: String {
         switch self {
@@ -33,16 +33,10 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
         }
     }
     
-    /// Come si produce questo formato senza modello linguistico.
     public enum LocalComposition: Sendable {
-        /// Basta la scheda dell'alunno: si compone sempre.
         case always
-        /// Serve un testo con una struttura riconoscibile — una verifica con
-        /// quesiti numerati. Se il testo non ce l'ha, l'app lo dice.
         case fromStructuredText
-        /// Basta un testo qualsiasi, senza struttura particolare.
         case fromAnyText
-        /// Per ora richiede un modello.
         case none
     }
 
@@ -54,29 +48,7 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
         default:                return .none
         }
     }
-
-    /// Vero per i formati che l'app produce da sé, senza nessun modello.
-    ///
-    /// Non è un ripiego per chi non ha una chiave: è la forma giusta per
-    /// questo documento. La Scheda PDP riepiloga misure deliberate dal
-    /// Consiglio di Classe, e il suo valore sta nel riportare *esattamente*
-    /// le parole della normativa — cosa che un modello, parafrasandole un po'
-    /// diverse a ogni generazione, peggiorava senza aggiungere niente.
     public var isComposedLocally: Bool { localComposition == .always }
-
-    /// Vero per i formati che il modello integrato non regge.
-    ///
-    /// Non è una stima: misurato il 28 agosto 2026 sul modello on-device di
-    /// Apple (~3B) con una verifica di meccanica agraria reale. In 19
-    /// secondi ha prodotto un documento ben impaginato che però
-    /// **rispondeva alle domande invece di lasciarle aperte** — ignorando
-    /// una regola scritta in maiuscolo come prima istruzione — sbagliava il
-    /// calcolo del consumo di un fattore dieci, e definiva il rapporto di
-    /// compressione come rapporto tra pressioni anziché tra volumi.
-    ///
-    /// Il quiz sta qui per la stessa ragione: chiede quattro distrattori
-    /// plausibili e una spiegazione per ciascuno, che è lo stesso genere di
-    /// compito a vincoli multipli.
     public var needsCloudQuality: Bool {
         switch self {
         case .equipollenteExam, .interactiveQuiz:
@@ -85,20 +57,6 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
             return false
         }
     }
-
-    /// Il prompt di sistema, adattato a cosa il motore sa fare.
-    ///
-    /// `tablesSupported` esiste per un difetto misurato il 29 agosto 2026: il
-    /// modello integrato nel Mac, arrivato a una tabella markdown, comincia a
-    /// incolonnare le celle con spazi e non smette più, finché esaurisce la
-    /// finestra di contesto e la generazione fallisce. La verifica
-    /// equipollente falliva così in 54 secondi e il formulario in 57 —
-    /// **gli unici due formati che chiedevano una tabella**. Chiedendo gli
-    /// stessi contenuti come elenco riescono entrambi in 9 secondi, con
-    /// l'uscita pulita.
-    ///
-    /// Gemini le tabelle le fa bene, e nel documento Word diventano tabelle
-    /// vere con l'intestazione ripetuta: quindi si rinuncia solo dove serve.
     public func systemPrompt(tablesSupported: Bool) -> String {
         let template = systemPromptTemplate
         guard !tablesSupported else { return template }

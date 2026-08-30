@@ -1,25 +1,16 @@
 import Foundation
 import Security
-
-/// Custodia per i segreti dell'app (oggi la sola API key di Google Gemini).
-///
-/// La chiave sta nel portachiavi e non in `UserDefaults`: da lì sarebbe
-/// leggibile in chiaro da qualunque processo con accesso al container.
 public enum KeychainStore {
 
     public enum Key: String {
         case geminiApiKey = "it.lemmly.helpme.gemini-api-key"
-        /// Derivazione della password amministratore, mai la password stessa.
         case adminPasswordHash = "it.lemmly.helpme.admin-password"
     }
 
     @discardableResult
     public static func save(_ value: String, for key: Key) -> Bool {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // Valore vuoto significa "dimentica la chiave".
         guard !trimmed.isEmpty else { return delete(key) }
-
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: key.rawValue

@@ -1,18 +1,10 @@
 import SwiftUI
-
-/// Riscrive le frasi difficili, una per volta.
-///
-/// L'analizzatore dice *quali* frasi sono il problema; qui si riscrivono,
-/// con l'originale sopra e l'indice che si muove mentre si lavora. Le frasi
-/// che vanno bene non compaiono: il lavoro va dove serve.
 public struct SimplificationWorkbenchModal: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable public var appViewModel: AppViewModel
-
     @State private var rows: [SimplificationRow]
     private let glossary: [String: String]
     private let startingIndex: Int
-
     public init(appViewModel: AppViewModel) {
         self.appViewModel = appViewModel
         let rows = SimplificationDraft.rows(from: appViewModel.sourceText)
@@ -21,16 +13,13 @@ public struct SimplificationWorkbenchModal: View {
             from: appViewModel.selectedStudent?.personalGlossary ?? "")
         self.startingIndex = SimplificationDraft.currentGulpease(rows)
     }
-
     private var toRewrite: [Int] { rows.indices.filter { rows[$0].reading.needsWork } }
     private var done: Int { toRewrite.filter { rows[$0].isRewritten }.count }
     private var currentIndex: Int { SimplificationDraft.currentGulpease(rows) }
-
     public var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
             Divider()
-
             if toRewrite.isEmpty {
                 nothingToDo
             } else {
@@ -43,14 +32,12 @@ public struct SimplificationWorkbenchModal: View {
                     .padding(.trailing, 6)
                 }
             }
-
             Divider()
             footer
         }
         .padding(22)
         .frame(minWidth: 680, minHeight: 600)
     }
-
     private var header: some View {
         HStack(spacing: 12) {
             Image(systemName: "text.badge.checkmark")
@@ -66,9 +53,6 @@ public struct SimplificationWorkbenchModal: View {
             indexBadge
         }
     }
-
-    /// L'indice si muove mentre si scrive: è il riscontro che dice se la
-    /// riscrittura sta servendo davvero, invece di far riscrivere alla cieca.
     private var indexBadge: some View {
         VStack(spacing: 1) {
             Text("Gulpease")
@@ -90,7 +74,6 @@ public struct SimplificationWorkbenchModal: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Indice Gulpease: \(currentIndex) su 100, partiva da \(startingIndex)")
     }
-
     private var nothingToDo: some View {
         VStack(spacing: 10) {
             Image(systemName: "checkmark.seal")
@@ -103,7 +86,6 @@ public struct SimplificationWorkbenchModal: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-
     private var footer: some View {
         HStack {
             Button("Annulla") { dismiss() }
@@ -126,7 +108,6 @@ public struct SimplificationWorkbenchModal: View {
             .disabled(rows.isEmpty)
         }
     }
-
     private func sentenceEditor(_ index: Int, number: Int) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .firstTextBaseline) {
@@ -143,7 +124,6 @@ public struct SimplificationWorkbenchModal: View {
                         .font(.caption)
                 }
             }
-
             Text(rows[index].original)
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
@@ -152,13 +132,9 @@ public struct SimplificationWorkbenchModal: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.primary.opacity(0.04))
                 .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-
             TextField("Riscrivila con parole più semplici", text: $rows[index].rewritten, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(2...5)
-
-            // Le parole che il docente ha già spiegato per questo alunno,
-            // proprio accanto alla frase che le contiene.
             let aiuti = SimplificationDraft.hints(for: rows[index], glossary: glossary)
             if !aiuti.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {

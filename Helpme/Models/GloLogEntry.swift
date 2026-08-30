@@ -25,11 +25,6 @@ public enum PeiDimension: String, Codable, CaseIterable, Sendable {
         }
     }
 }
-
-/// Voce del diario di bordo GLO, sulle 4 dimensioni ministeriali del D.I. 182/2020.
-///
-/// Le voci le scrive il docente: nulla viene aggiunto automaticamente
-/// al registro dall'app.
 @Model
 public final class GloLogEntry {
     @Attribute(.unique) public var id: UUID

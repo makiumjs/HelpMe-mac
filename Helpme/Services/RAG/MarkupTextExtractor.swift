@@ -1,29 +1,10 @@
 import Foundation
-
-/// Estrae testo leggibile da markup XML/HTML senza usare un parser DOM.
-///
-/// I documenti scolastici veri sono spesso malformati (tag non chiusi,
-/// entità strane, encoding misto): un `XMLParser` rigido si arrende, mentre
-/// qui interessa recuperare il testo, non validare il documento.
 nonisolated enum MarkupTextExtractor {
 
     // MARK: - Word (word/document.xml)
-
-    /// Il testo di un `document.xml` OpenXML.
-    ///
-    /// Prende solo il contenuto dei `<w:t>`: tutto il resto è formattazione.
-    /// I confini di paragrafo (`<w:p>`), riga (`<w:br/>`), tabulazione
-    /// (`<w:tab/>`) e cella (`<w:tc>`) diventano spaziatura vera, altrimenti
-    /// una tabella si appiattirebbe in una sola riga illeggibile.
     static func textFromWordDocument(_ xml: String) -> String {
         var output = ""
         var insideTextRun = false
-        /// Quante celle di tabella sono aperte attorno al punto corrente.
-        ///
-        /// Serve perché dentro una cella il fine paragrafo non deve andare a
-        /// capo: la riga della tabella la chiude `</w:tr>`. Senza questo
-        /// conteggio ogni cella finirebbe su una riga sua e la griglia di
-        /// valutazione si srotolerebbe in una colonna sola.
         var cellDepth = 0
 
         scanMarkup(xml) { event in
@@ -59,8 +40,6 @@ nonisolated enum MarkupTextExtractor {
     ]
 
     private static let skippedTags: Set<String> = ["script", "style", "head", "svg"]
-
-    /// Il testo visibile di una pagina (X)HTML.
     static func textFromHtml(_ html: String) -> String {
         var output = ""
         var suppressionDepth = 0
@@ -93,8 +72,6 @@ nonisolated enum MarkupTextExtractor {
                 if blockTags.contains(name) {
                     output += "\n"
                 } else if kind != .close {
-                    // Un tag inline separa comunque due parole: senza questo
-                    // "<b>ciclo</b>termico" diventerebbe una parola sola.
                     output += " "
                 }
             }
@@ -104,12 +81,6 @@ nonisolated enum MarkupTextExtractor {
     }
 
     // MARK: - EPUB
-
-    /// Il testo di un EPUB, nell'ordine di lettura dichiarato dallo spine.
-    ///
-    /// Se il pacchetto non è navigabile (container o OPF illeggibili) si
-    /// ripiega su tutti i documenti XHTML in ordine alfabetico: un ordine
-    /// approssimativo è comunque meglio di un errore.
     static func textFromEpub(_ archive: ZipArchiveReader) throws -> String {
         let documents = epubReadingOrder(in: archive)
         guard !documents.isEmpty else {
@@ -127,8 +98,6 @@ nonisolated enum MarkupTextExtractor {
 
         return pieces.joined(separator: "\n\n")
     }
-
-    /// Ordine di lettura: container.xml → OPF → spine risolto sul manifest.
     private static func epubReadingOrder(in archive: ZipArchiveReader) -> [String] {
         guard let containerXml = try? archive.text(for: "META-INF/container.xml"),
               let opfPath = attribute("full-path", ofFirst: "rootfile", in: containerXml),
@@ -137,8 +106,6 @@ nonisolated enum MarkupTextExtractor {
         }
 
         let basePath = (opfPath as NSString).deletingLastPathComponent
-
-        // manifest: id → href
         var manifest: [String: String] = [:]
         for tag in tags(named: "item", in: opfXml) {
             guard let id = attribute("id", in: tag), let href = attribute("href", in: tag) else { continue }
@@ -146,8 +113,6 @@ nonisolated enum MarkupTextExtractor {
             guard mediaType.contains("xhtml") || mediaType.contains("html") || mediaType.isEmpty else { continue }
             manifest[id] = href
         }
-
-        // spine: ordine dei riferimenti
         var ordered: [String] = []
         for tag in tags(named: "itemref", in: opfXml) {
             guard let idref = attribute("idref", in: tag), let href = manifest[idref] else { continue }
@@ -166,9 +131,6 @@ nonisolated enum MarkupTextExtractor {
             }
             .sorted()
     }
-
-    /// Risolve un href relativo, gestendo i `..` senza passare da `URL`
-    /// (che su un percorso interno all'archivio si porterebbe dietro lo schema).
     private static func resolve(href: String, relativeTo base: String) -> String {
         let decoded = href.removingPercentEncoding ?? href
         let withoutFragment = decoded.components(separatedBy: "#").first ?? decoded
@@ -186,29 +148,20 @@ nonisolated enum MarkupTextExtractor {
     }
 
     // MARK: - Micro-parser di tag
-
     private enum TagKind { case open, close, selfClosing }
-
     private enum MarkupEvent {
         case text(String)
         case tag(name: String, kind: TagKind)
     }
-
-    /// Percorre il markup una volta sola emettendo testo e tag.
-    ///
-    /// Lavora sugli scalari Unicode: i tag sono ASCII, e costruire un array
-    /// di `Character` su un documento grande costa molto di più.
     private static func scanMarkup(_ markup: String, _ handle: (MarkupEvent) -> Void) {
         let scalars = Array(markup.unicodeScalars)
         var index = 0
         var textBuffer = String.UnicodeScalarView()
-
         func flushText() {
             guard !textBuffer.isEmpty else { return }
             handle(.text(decodeEntities(String(textBuffer))))
             textBuffer = String.UnicodeScalarView()
         }
-
         while index < scalars.count {
             let scalar = scalars[index]
 
@@ -217,8 +170,6 @@ nonisolated enum MarkupTextExtractor {
                 index += 1
                 continue
             }
-
-            // Commenti, CDATA e dichiarazioni: si saltano interi.
             if matches("!--", at: index + 1, in: scalars) {
                 flushText()
                 index = skip(to: "-->", from: index + 4, in: scalars)
@@ -233,7 +184,6 @@ nonisolated enum MarkupTextExtractor {
             }
 
             guard let tagEnd = indexOfTagEnd(from: index + 1, in: scalars) else {
-                // '<' isolato in un documento malformato: è testo.
                 textBuffer.append(scalar)
                 index += 1
                 continue
@@ -244,7 +194,6 @@ nonisolated enum MarkupTextExtractor {
             let body = scalars[(index + 1)..<tagEnd]
             let isClosing = body.first == "/"
             let isSelfClosing = body.last == "/"
-
             var nameScalars = String.UnicodeScalarView()
             for scalar in body.dropFirst(isClosing ? 1 : 0) {
                 if scalar == " " || scalar == "\t" || scalar == "\n" || scalar == "\r" || scalar == "/" { break }
@@ -261,8 +210,6 @@ nonisolated enum MarkupTextExtractor {
 
         flushText()
     }
-
-    /// Fine del tag, ignorando i `>` che compaiono dentro un attributo quotato.
     private static func indexOfTagEnd(from start: Int, in scalars: [Unicode.Scalar]) -> Int? {
         var quote: Unicode.Scalar? = nil
         var index = start
@@ -304,8 +251,6 @@ nonisolated enum MarkupTextExtractor {
     }
 
     // MARK: - Attributi
-
-    /// Il corpo di ogni tag con questo nome, attributi compresi.
     static func tags(named name: String, in markup: String) -> [String] {
         var found: [String] = []
         let scalars = Array(markup.unicodeScalars)
@@ -329,16 +274,12 @@ nonisolated enum MarkupTextExtractor {
 
         return found
     }
-
-    /// Valore di un attributo dentro il corpo di un tag già isolato.
     static func attribute(_ name: String, in tagBody: String) -> String? {
         let scalars = Array(tagBody.unicodeScalars)
         let target = Array(name.lowercased().unicodeScalars)
         var index = 0
 
         while index < scalars.count {
-            // L'attributo deve iniziare dopo uno spazio, altrimenti "href"
-            // verrebbe trovato dentro "xlink:href" o "data-href".
             let atBoundary = index == 0 || scalars[index - 1] == " " || scalars[index - 1] == "\t"
                 || scalars[index - 1] == "\n" || scalars[index - 1] == "\r"
 
@@ -346,7 +287,6 @@ nonisolated enum MarkupTextExtractor {
                 index += 1
                 continue
             }
-
             var cursor = index + target.count
             while cursor < scalars.count, scalars[cursor] == " " { cursor += 1 }
             guard cursor < scalars.count, scalars[cursor] == "=" else {
@@ -367,7 +307,6 @@ nonisolated enum MarkupTextExtractor {
                 }
                 return decodeEntities(String(value))
             }
-
             var value = String.UnicodeScalarView()
             while cursor < scalars.count, scalars[cursor] != " ", scalars[cursor] != ">" {
                 value.append(scalars[cursor])
@@ -375,11 +314,8 @@ nonisolated enum MarkupTextExtractor {
             }
             return decodeEntities(String(value))
         }
-
         return nil
     }
-
-    /// Il valore di un attributo del primo tag con quel nome.
     static func attribute(_ name: String, ofFirst tagName: String, in markup: String) -> String? {
         for body in tags(named: tagName, in: markup) {
             if let value = attribute(name, in: body) { return value }
@@ -397,7 +333,6 @@ nonisolated enum MarkupTextExtractor {
     }
 
     // MARK: - Entità e ripulitura
-
     private static let namedEntities: [String: String] = [
         "amp": "&", "lt": "<", "gt": ">", "quot": "\"", "apos": "'",
         "nbsp": " ", "ndash": "–", "mdash": "—", "hellip": "…",
@@ -449,21 +384,10 @@ nonisolated enum MarkupTextExtractor {
 
         return output
     }
-
-    /// Comprime la spaziatura tenendo la struttura: gli spazi ripetuti
-    /// diventano uno, ogni blocco resta sulla sua riga.
-    ///
-    /// Le righe vuote spariscono del tutto. Due tag di blocco adiacenti
-    /// (`</h1><p>`, o `</w:p></w:tc>`) emettono ciascuno il proprio a capo,
-    /// e tenerli entrambi riempirebbe il testo di buchi che non stanno nel
-    /// documento originale.
     static func tidy(_ text: String) -> String {
         var lines: [String] = []
 
         for rawLine in text.components(separatedBy: "\n") {
-            // I tab non si toccano: separano le colonne di una tabella, e
-            // appiattirli renderebbe illeggibile la griglia di valutazione.
-            // Dentro ogni cella, invece, gli spazi si comprimono.
             var cells = rawLine.components(separatedBy: "\t").map { cell in
                 cell.components(separatedBy: " ")
                     .filter { !$0.isEmpty }
@@ -475,7 +399,6 @@ nonisolated enum MarkupTextExtractor {
             if collapsed.isEmpty { continue }
             lines.append(collapsed)
         }
-
         return lines.joined(separator: "\n")
     }
 }

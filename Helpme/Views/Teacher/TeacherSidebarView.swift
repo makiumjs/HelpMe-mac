@@ -20,14 +20,11 @@ public struct TeacherSidebarView: View {
 
     private var sidebarContent: some View {
         VStack(alignment: .leading, spacing: 18) {
-            // Header Sezione Alunni
             HStack {
                 Label("Alunni PEI / DSA", systemImage: "person.2.badge.gearshape.fill")
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(Color.institutional)
-                
                 Spacer()
-                
                 Button(action: { teacherViewModel.activeSheet = .newStudent }) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 18))
@@ -37,8 +34,6 @@ public struct TeacherSidebarView: View {
                 .accessibilityLabel("Aggiungi nuova scheda alunno")
                 .help("Crea un nuovo profilo studente PEI/DSA")
             }
-            
-            // Picker Alunno Selezionato
             HStack(spacing: 6) {
                 Picker("Alunno Attivo:", selection: $appViewModel.selectedStudent) {
                     ForEach(appViewModel.students) { student in
@@ -83,18 +78,10 @@ public struct TeacherSidebarView: View {
             }
             
             Divider()
-            
-            // Formati Didattici Inclusivi
             VStack(alignment: .leading, spacing: 8) {
                 Label("Formato Didattico", systemImage: "sparkles.rectangle.stack.fill")
                     .font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundColor(Color.institutional)
-                
-                // Una pila e non una `List`: i formati sono sette e non
-                // cambiano, quindi la lista aveva un'altezza fissa piu' corta
-                // del suo contenuto e ne nascondeva due dietro una barra di
-                // scorrimento. Sceglierne uno e' la cosa che si fa piu'
-                // spesso in questa schermata: devono essere tutti in vista.
                 VStack(spacing: 2) {
                     ForEach(DidacticFormat.allCases, id: \.self) { format in
                         let isSelected = appViewModel.selectedFormat == format
@@ -137,8 +124,6 @@ public struct TeacherSidebarView: View {
             }
             
             Divider()
-            
-            // Strumenti Rapidi Docente con Contrasto e Feedback Ottimizzati
             VStack(spacing: 10) {
                 Button(action: { teacherViewModel.activeSheet = .measures }) {
                     Label("Misure PDP dell'alunno", systemImage: "checklist")

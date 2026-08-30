@@ -1,13 +1,6 @@
 import Foundation
 import Speech
 import AVFoundation
-
-/// Esito della richiesta di permessi per la dettatura.
-///
-/// È un tipo a sé, e non lo `SFSpeechRecognizerAuthorizationStatus` di
-/// sistema, perché tiene insieme due permessi distinti (riconoscimento e
-/// microfono) e la disponibilità della lingua: all'utente interessa una
-/// sola risposta chiara, non tre stati da combinare.
 public enum DictationPermission: Equatable, Sendable {
     case granted
     case speechDenied
@@ -15,8 +8,6 @@ public enum DictationPermission: Equatable, Sendable {
     case restricted
     case notDetermined
     case unavailableLocale
-
-    /// Messaggio da mostrare, o `nil` se si può procedere.
     public var userMessage: String? {
         switch self {
         case .granted:
@@ -35,8 +26,6 @@ public enum DictationPermission: Equatable, Sendable {
     }
 
     public var canDictate: Bool { self == .granted }
-
-    /// Traduce lo stato di sistema, tenendo conto se la lingua è utilizzabile.
     public static func from(
         speechStatus: SFSpeechRecognizerAuthorizationStatus,
         microphoneGranted: Bool,
@@ -54,11 +43,6 @@ public enum DictationPermission: Equatable, Sendable {
         }
     }
 }
-
-/// Dettatura vocale continua, con trascrizione in tempo reale.
-///
-/// Prevista dalla specifica come ingresso principale per chi ha disgrafia:
-/// scrivere a mano o alla tastiera è la barriera, non il pensiero.
 @MainActor
 @Observable
 public final class SpeechDictationService {
@@ -66,13 +50,9 @@ public final class SpeechDictationService {
     // MARK: - Stato osservato dalle viste
 
     public private(set) var isRecording: Bool = false
-    /// Testo riconosciuto nella sessione di dettatura in corso.
     public private(set) var liveTranscript: String = ""
     public private(set) var errorMessage: String? = nil
     public private(set) var permission: DictationPermission = .notDetermined
-
-    /// Vero se l'hardware e la lingua ci sono: il pulsante resta visibile
-    /// ma disabilitato, invece di sparire senza spiegazione.
     public var isSupported: Bool { recognizer != nil }
 
     // MARK: - Interni
@@ -81,10 +61,6 @@ public final class SpeechDictationService {
     private let audioEngine = AVAudioEngine()
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
-
-    /// Vero tra la richiesta di avvio e il motore audio effettivamente
-    /// acceso: copre la finestra in cui `isRecording` è ancora falso ma una
-    /// sessione è già in preparazione.
     private var isStarting = false
 
     public init(locale: Locale = Locale(identifier: "it-IT")) {
@@ -123,24 +99,15 @@ public final class SpeechDictationService {
     }
 
     public func start() async {
-        // `isRecording` diventa vero solo a motore audio avviato, cioè dopo
-        // l'attesa dei permessi: un doppio tocco rapido supererebbe quel
-        // controllo due volte, e la seconda chiamata smonterebbe la sessione
-        // appena avviata dalla prima. Questa bandiera si alza subito, prima
-        // di qualunque sospensione.
         guard !isStarting, !isRecording else { return }
         isStarting = true
         defer { isStarting = false }
-
         guard let recognizer else {
             errorMessage = DictationPermission.unavailableLocale.userMessage
             return
         }
-
         let permission = await requestPermission()
         guard permission.canDictate else { return }
-
-        // Una sessione precedente lasciata aperta bloccherebbe il motore audio.
         teardown()
         liveTranscript = ""
         errorMessage = nil
@@ -150,8 +117,6 @@ public final class SpeechDictationService {
 
             let request = SFSpeechAudioBufferRecognitionRequest()
             request.shouldReportPartialResults = true
-            // Il parlato non lascia il dispositivo se il modello è locale:
-            // per dati di minori è la sola configurazione accettabile.
             if recognizer.supportsOnDeviceRecognition {
                 request.requiresOnDeviceRecognition = true
             }
@@ -164,11 +129,9 @@ public final class SpeechDictationService {
                 teardown()
                 return
             }
-
             inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
                 request.append(buffer)
             }
-
             audioEngine.prepare()
             try audioEngine.start()
             isRecording = true
@@ -180,9 +143,6 @@ public final class SpeechDictationService {
                         self.liveTranscript = result.bestTranscription.formattedString
                     }
                     if error != nil || (result?.isFinal ?? false) {
-                        // Un errore a dettatura già avviata quasi sempre è la
-                        // fine naturale del flusso audio: non va segnalato
-                        // come guasto, altrimenti ogni pausa sembra un errore.
                         self.finishRecording()
                     }
                 }
@@ -198,8 +158,6 @@ public final class SpeechDictationService {
         request?.endAudio()
         finishRecording()
     }
-
-    /// Svuota la trascrizione dopo che è stata consegnata all'editor.
     public func consumeTranscript() -> String {
         let text = liveTranscript
         liveTranscript = ""
@@ -237,16 +195,10 @@ public final class SpeechDictationService {
     }
 
     // MARK: - Fusione con il testo già scritto
-
-    /// Accoda il dettato al testo esistente senza incollare le parole
-    /// insieme e senza accumulare spazi.
     public static func merged(existing: String, dictated: String) -> String {
         let addition = dictated.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !addition.isEmpty else { return existing }
         guard !existing.isEmpty else { return addition }
-
-        // Se il testo finisce già con uno spazio o va a capo, si rispetta
-        // quella spaziatura invece di aggiungerne un'altra.
         if let last = existing.last, last.isWhitespace || last.isNewline {
             return existing + addition
         }

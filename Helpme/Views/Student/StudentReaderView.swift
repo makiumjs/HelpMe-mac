@@ -13,9 +13,6 @@ public struct StudentReaderView: View {
     public var body: some View {
         VStack(spacing: 0) {
             toolbar
-
-            // Pausa attiva e traguardo appena preso: sopra al testo, dove
-            // si guarda, ma senza rubare la schermata.
             if studentViewModel.phase == .breakSuggested, let activeBreak = studentViewModel.currentBreak {
                 activeBreakBanner(activeBreak)
             }
@@ -27,14 +24,8 @@ public struct StudentReaderView: View {
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: studentViewModel.phase)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: studentViewModel.newlyEarnedBadge)
-        // Il materiale si rianalizza quando cambia, non a ogni disegno:
-        // rifarlo nel corpo della vista rigenererebbe gli identificativi di
-        // domande e nodi, e la risposta scelta non corrisponderebbe a nulla.
         .onAppear { studentViewModel.parseStudyTools(from: appViewModel.generatedContent) }
         .onChange(of: appViewModel.generatedContent) { _, content in
-            // Durante lo streaming il testo cambia a ogni token: rianalizzarlo
-            // ogni volta significherebbe centinaia di passate complete sul
-            // main actor mentre la risposta arriva.
             guard !appViewModel.isGenerating else { return }
             studentViewModel.parseStudyTools(from: content)
         }
@@ -67,11 +58,6 @@ public struct StudentReaderView: View {
     }
 
     // MARK: - Barra strumenti
-
-    /// La barra si stringe da sé: a finestra piena le etichette sono per
-    /// esteso, quando lo spazio manca i pulsanti di studio restano icone.
-    /// Prima l'unica cosa che cedeva era il timer, che finiva per mandare
-    /// a capo "03:00" carattere per carattere.
     private var toolbar: some View {
         ViewThatFits(in: .horizontal) {
             toolbarRow(compact: false)
@@ -111,10 +97,6 @@ public struct StudentReaderView: View {
             .help("Incornicia una riga alla volta oscurando il resto del testo")
             .accessibilityLabel("Righello di lettura")
             .accessibilityHint("Incornicia una riga alla volta oscurando il resto del testo")
-
-            // Gli strumenti interattivi compaiono solo quando il materiale
-            // generato si presta davvero: un pulsante che apre una scheda
-            // vuota è peggio di un pulsante assente.
             if studentViewModel.hasMindmap {
                 studyToolButton(
                     title: "Mappa",
@@ -123,7 +105,6 @@ public struct StudentReaderView: View {
                     compact: compact
                 ) { studentViewModel.activeSheet = .mindmap }
             }
-
             if studentViewModel.hasQuiz {
                 studyToolButton(
                     title: "Quiz",
@@ -132,18 +113,14 @@ public struct StudentReaderView: View {
                     compact: compact
                 ) { studentViewModel.activeSheet = .quiz }
             }
-
             Spacer(minLength: 8)
-
             FocusTimerWidget(viewModel: studentViewModel)
         }
     }
-
     private func speechButtonTitle(compact: Bool) -> String {
         if appViewModel.audioReader.isSpeaking { return compact ? "Ferma" : "Ferma Lettura" }
         return compact ? "Ascolta" : "Ascolta con Karaoke"
     }
-
     private func studyToolButton(
         title: String,
         symbol: String,
@@ -161,15 +138,12 @@ public struct StudentReaderView: View {
         }
         .buttonStyle(.bordered)
         .tint(Color.institutional)
-        // In modalità compatta resta la sola icona: senza suggerimento
-        // sarebbe un geroglifico.
         .help(hint)
         .accessibilityLabel(title)
         .accessibilityHint(hint)
     }
 
     // MARK: - Pausa attiva
-
     private func activeBreakBanner(_ activeBreak: ActiveBreak) -> some View {
         HStack(alignment: .top, spacing: 13) {
             Image(systemName: activeBreak.symbol)
@@ -185,9 +159,7 @@ public struct StudentReaderView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-
             Spacer(minLength: 8)
-
             HStack(spacing: 8) {
                 Button {
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
@@ -218,14 +190,12 @@ public struct StudentReaderView: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Sessione completata. Pausa attiva proposta: \(activeBreak.title). \(activeBreak.instruction)")
     }
-
     private func badgeBanner(_ badge: FocusBadge) -> some View {
         HStack(spacing: 12) {
             Image(systemName: badge.symbol)
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(.orange)
                 .frame(width: 34)
-
             VStack(alignment: .leading, spacing: 2) {
                 Text("Nuovo traguardo: \(badge.title)")
                     .font(.system(size: 13, weight: .bold, design: .rounded))
@@ -233,13 +203,10 @@ public struct StudentReaderView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
-
             Spacer(minLength: 8)
-
             Button("Vedi") { studentViewModel.activeSheet = .badges }
                 .buttonStyle(.bordered)
                 .font(.system(size: 12, weight: .medium, design: .rounded))
-
             Button {
                 withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
                     studentViewModel.dismissBadgeCelebration()
@@ -261,17 +228,9 @@ public struct StudentReaderView: View {
     }
 
     // MARK: - Area di lettura
-
-    /// Il materiale come deve arrivare allo studente.
-    ///
-    /// Il testo grezzo porta i marcatori che servono all'app, `- [x]`
-    /// compreso: leggerli qui significherebbe vedere la risposta giusta
-    /// prima ancora di aprire il quiz. Il docente continua a vedere
-    /// l'originale nel proprio editor.
     private var readableContent: String {
         StudyTextPresenter.readable(appViewModel.generatedContent)
     }
-
     private var readingArea: some View {
         ZStack {
             if appViewModel.generatedContent.isEmpty {
@@ -298,7 +257,6 @@ public struct StudentReaderView: View {
                     settings: appViewModel.accessibilitySettings
                 )
             }
-
             if appViewModel.accessibilitySettings.readingRulerEnabled && !appViewModel.generatedContent.isEmpty {
                 ReadingRulerOverlay(
                     offsetY: $studentViewModel.rulerOffsetY,

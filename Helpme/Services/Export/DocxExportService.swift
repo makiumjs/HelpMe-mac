@@ -2,11 +2,6 @@ import Foundation
 
 public final class DocxExportService: Sendable {
     public init() {}
-    
-    /// Genera i file XML OpenXML conformi per creare un documento Word .docx
-    ///
-    /// L'archivio viene scritto in-process con `ZipArchiveWriter`: `Process` non
-    /// esiste su iPadOS e l'App Sandbox di macOS blocca il lancio di `/usr/bin/zip`.
     public func createDocxBundle(
         schoolInfo: SchoolInfo,
         student: StudentProfile,
@@ -34,13 +29,6 @@ public final class DocxExportService: Sendable {
             )
         }
     }
-
-    /// Confeziona il documento in memoria, per consegnarlo al pannello
-    /// "Salva con nome" senza toccare il disco.
-    /// Se `answerKey` è presente, viene aggiunto in coda **dopo
-    /// un'interruzione di pagina**: il docente ha la chiave di correzione a
-    /// portata di mano e gli basta non stampare l'ultima pagina per
-    /// consegnare il foglio senza risposte.
     public func makeDocxData(
         schoolInfo: SchoolInfo,
         student: StudentProfile,
@@ -50,8 +38,6 @@ public final class DocxExportService: Sendable {
         answerKey: String? = nil
     ) -> Data {
         var archive = ZipArchiveWriter()
-
-        // 1. [Content_Types].xml — deve essere la prima voce dell'archivio OPC.
         archive.addFile(path: "[Content_Types].xml", text: """
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -60,23 +46,17 @@ public final class DocxExportService: Sendable {
             <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
         </Types>
         """)
-
-        // 2. _rels/.rels
         archive.addFile(path: "_rels/.rels", text: """
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
             <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
         </Relationships>
         """)
-
-        // 3. word/_rels/document.xml.rels — presente anche se vuoto: Word lo attende.
         archive.addFile(path: "word/_rels/document.xml.rels", text: """
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
         </Relationships>
         """)
-
-        // 4. word/document.xml
         archive.addFile(path: "word/document.xml", text: generateDocumentXml(
             school: schoolInfo,
             student: student,
@@ -109,9 +89,6 @@ public final class DocxExportService: Sendable {
         let escapedTitle = escapeXml(title)
         
         let paragraphsXml = MarkdownToOoxml.body(from: content)
-
-        // La chiave di correzione va su una pagina propria: il docente
-        // stampa senza l'ultima e il foglio dello studente resta pulito.
         let answerKeyXml: String
         if let answerKey, !answerKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             answerKeyXml = #"<w:p><w:r><w:br w:type="page"/></w:r></w:p>"# + MarkdownToOoxml.body(from: answerKey)

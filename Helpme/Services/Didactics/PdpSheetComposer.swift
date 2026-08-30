@@ -1,15 +1,4 @@
 import Foundation
-
-/// Compone la Scheda Sintesi PDP senza modello linguistico.
-///
-/// È il primo formato portato fuori dall'IA, e non per risparmiare: qui un
-/// modello faceva danno. Il documento riepiloga misure deliberate dal
-/// Consiglio di Classe e finisce nel fascicolo dell'alunno; la sua utilità
-/// sta nel dire *esattamente* le stesse parole della normativa, ogni volta.
-/// Un modello le riscriveva un po' diverse a ogni generazione, e in cambio
-/// non aggiungeva niente che il docente non avesse già scelto.
-///
-/// Tutto quello che serve è già nella scheda dell'alunno: qui si impagina.
 public nonisolated enum PdpSheetComposer {
 
     public struct Input: Sendable {
@@ -49,13 +38,6 @@ public nonisolated enum PdpSheetComposer {
         **Percorso:** \(input.programTitle)
         **Riferimento normativo:** \(input.programReference)
         """)
-
-        // Le misure si archiviano dove le mette la normativa, non dove le ha
-        // messe chi ha compilato la scheda: "tempi aggiuntivi" è una misura
-        // dispensativa (Linee guida 4.4) anche quando il docente l'ha
-        // annotata fra i compensativi. Su un documento che cita le norme la
-        // categoria è un fatto. Le misure che il catalogo non conosce
-        // restano dove il docente le ha scritte.
         let filed = fileByCategory(compensatory: input.compensatory, dispensatory: input.dispensatory)
 
         parts.append(section(
@@ -69,11 +51,6 @@ public nonisolated enum PdpSheetComposer {
             measures: filed.dispensative,
             emptyNote: "Nessuna misura dispensativa è stata indicata per questo alunno."
         ))
-
-        // Le strategie di verifica derivano dalle misure scelte: se l'alunno
-        // è dispensato dalla scrittura veloce, la prova va letta e strutturata.
-        // Dirlo esplicitamente serve ai colleghi curricolari, che le misure
-        // dell'alunno le vedono una volta l'anno.
         let strategies = assessmentStrategies(
             compensatory: input.compensatory,
             dispensatory: input.dispensatory
@@ -89,11 +66,6 @@ public nonisolated enum PdpSheetComposer {
             Gli esempi e le analogie proposti all'alunno partono da: **\(input.interest)**.
             """)
         }
-
-        // Le note del docente passano dal filtro clinico anche qui, dove il
-        // documento resta in locale: questa scheda la leggono i colleghi
-        // curricolari, che hanno diritto di sapere come si insegna a questo
-        // alunno e nessun titolo per leggerne la diagnosi.
         let didactic = StudentPseudonymizer.filterClinicalReferences(from: input.notes)
         if !didactic.isEmpty {
             parts.append("""
@@ -112,8 +84,6 @@ public nonisolated enum PdpSheetComposer {
 
         return parts.joined(separator: "\n\n")
     }
-
-    /// Ricolloca ogni misura conosciuta sotto la voce che le spetta.
     static func fileByCategory(
         compensatory: [String],
         dispensatory: [String]
@@ -141,8 +111,6 @@ public nonisolated enum PdpSheetComposer {
         }
         return "## \(title)\n\n" + rows.joined(separator: "\n")
     }
-
-    /// Le strategie che discendono da ciò che è già stato scelto.
     static func assessmentStrategies(compensatory: [String], dispensatory: [String]) -> [String] {
         let chosen = (compensatory + dispensatory).compactMap { MeasureCatalog.matching($0)?.id }
         var derived: [String] = []
@@ -167,8 +135,6 @@ public nonisolated enum PdpSheetComposer {
         if chosen.contains("disp.ortografia") {
             add("val.contenuto")
         }
-        // Vale per chiunque abbia un PDP: una verifica a sorpresa annulla
-        // l'effetto di qualunque misura compensativa.
         add("val.programmate")
 
         return derived

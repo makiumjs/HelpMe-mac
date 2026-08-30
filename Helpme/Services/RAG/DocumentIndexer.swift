@@ -11,9 +11,6 @@ import UIKit
 public nonisolated final class DocumentIndexer: Sendable {
 
     public init() {}
-
-    /// I formati che l'estrattore sa davvero aprire. Il selettore di file
-    /// e il messaggio d'errore leggono da qui, così non possono divergere.
     public static let supportedExtensions: [String] = [
         "pdf", "docx", "epub", "txt", "md", "markdown", "rtf"
     ]
@@ -70,8 +67,6 @@ public nonisolated final class DocumentIndexer: Sendable {
     }
 
     // MARK: - Word
-
-    /// Un `.docx` è un archivio OPC: il testo sta in `word/document.xml`.
     private func extractFromDocx(_ url: URL) throws -> String {
         let archive: ZipArchiveReader
         do {
@@ -121,10 +116,6 @@ public nonisolated final class DocumentIndexer: Sendable {
     }
 
     // MARK: - RTF e testo semplice
-
-    /// L'RTF va srotolato, non letto come testo: altrimenti nell'indice
-    /// finirebbero i comandi di formattazione (`\rtf1`, `\fonttbl`…) invece
-    /// delle parole del documento.
     private func extractFromRtf(_ url: URL) throws -> String {
         let data = try Data(contentsOf: url)
         guard let attributed = try? NSAttributedString(
@@ -138,22 +129,13 @@ public nonisolated final class DocumentIndexer: Sendable {
         }
         return attributed.string
     }
-
-    /// Prova UTF-8 e poi le codifiche che si incontrano davvero nei file
-    /// scolastici vecchi, invece di fallire su un accento.
     private func readPlainText(_ url: URL) throws -> String {
-        // Prima il rilevamento di sistema: legge il BOM e gli attributi
-        // estesi del file, che sono l'indizio più affidabile.
         var detected = String.Encoding.utf8
         if let text = try? String(contentsOf: url, usedEncoding: &detected), !text.isEmpty {
             return text
         }
 
         let data = try Data(contentsOf: url)
-
-        // `.utf16` è escluso di proposito: accetta quasi ogni sequenza di
-        // byte di lunghezza pari, e un file Latin-1 verrebbe "letto" come
-        // ideogrammi invece di passare al tentativo successivo.
         for encoding: String.Encoding in [.utf8, .isoLatin1, .windowsCP1252] {
             if let text = String(data: data, encoding: encoding), !text.isEmpty {
                 return text
@@ -166,9 +148,6 @@ public nonisolated final class DocumentIndexer: Sendable {
     }
 
     // MARK: - Suddivisione in frammenti
-
-    /// Suddivide il testo in frammenti da `chunkSize` caratteri con `overlap`,
-    /// tagliando dove possibile a fine frase per non spezzare i concetti.
     public func chunkText(text: String, title: String, chunkSize: Int = 500, overlap: Int = 80) -> [DocumentChunk] {
         let cleanText = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanText.isEmpty else { return [] }
@@ -197,9 +176,6 @@ public nonisolated final class DocumentIndexer: Sendable {
 
         return chunks
     }
-
-    /// Arretra fino all'ultimo confine di frase, se cade nell'ultimo quarto
-    /// del frammento; altrimenti taglia dove capita.
     private static func sentenceAwareEnd(in text: String, from start: String.Index, upTo hardEnd: String.Index) -> String.Index {
         guard hardEnd < text.endIndex else { return hardEnd }
 
@@ -217,10 +193,6 @@ public nonisolated final class DocumentIndexer: Sendable {
     }
 
     // MARK: - Vettorizzazione
-
-    /// Modello di embedding italiano fornito dal sistema. È deterministico
-    /// tra un avvio e l'altro e coglie la vicinanza di significato, non solo
-    /// la coincidenza delle parole.
     private static let italianEmbedding: NLEmbedding? = {
         NLEmbedding.wordEmbedding(for: .italian) ?? NLEmbedding.wordEmbedding(for: .english)
     }()
@@ -228,12 +200,7 @@ public nonisolated final class DocumentIndexer: Sendable {
     public static var embeddingDimension: Int {
         italianEmbedding?.dimension ?? fallbackDimension
     }
-
     private static let fallbackDimension = 128
-
-    /// Vettore del testo: media dei vettori delle parole riconosciute,
-    /// normalizzata. Se il modello di sistema non è disponibile si ripiega
-    /// su un profilo lessicale stabile (vedi `deterministicFallback`).
     public static func embedding(for text: String) -> [Float] {
         let words = tokenize(text)
         guard !words.isEmpty else { return [] }
@@ -251,9 +218,6 @@ public nonisolated final class DocumentIndexer: Sendable {
             for i in 0..<dimension { accumulator[i] += vector[i] }
             matches += 1
         }
-
-        // Nessuna parola nel vocabolario (sigle, formule): meglio il profilo
-        // lessicale che un vettore nullo, altrimenti il frammento è irrecuperabile.
         guard matches > 0 else { return deterministicFallback(words: words) }
 
         var result = accumulator.map { Float($0 / Double(matches)) }
@@ -266,10 +230,6 @@ public nonisolated final class DocumentIndexer: Sendable {
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
             .filter { $0.count > 1 }
     }
-
-    /// Profilo lessicale con hash **stabile tra le esecuzioni**: `hashValue`
-    /// di String è randomizzato a ogni avvio del processo e renderebbe
-    /// inservibile qualunque indice salvato su disco.
     static func deterministicFallback(words: [String], dimension: Int = fallbackDimension) -> [Float] {
         var vector = [Float](repeating: 0, count: dimension)
         for word in words {
@@ -279,8 +239,6 @@ public nonisolated final class DocumentIndexer: Sendable {
         normalize(&vector)
         return vector
     }
-
-    /// FNV-1a: stessa stringa, stesso valore, per sempre.
     static func stableHash(_ string: String) -> UInt64 {
         var hash: UInt64 = 0xcbf29ce484222325
         for byte in string.utf8 {

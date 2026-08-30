@@ -1,10 +1,4 @@
 import Foundation
-
-/// Preferenze dell'app che non sono dati di lavoro: tipografia, tema,
-/// velocità di lettura, formato didattico usato per ultimo.
-///
-/// Stanno in `UserDefaults` e non nell'archivio SwiftData perché sono
-/// impostazioni della postazione, non dati dell'alunno.
 public enum SettingsStore {
 
     private enum Key {
@@ -45,10 +39,6 @@ public enum SettingsStore {
     }
 
     // MARK: - Licenza
-
-    /// Il codice licenza sta qui e non nel portachiavi: non è un segreto, è
-    /// un foglietto firmato. Chi lo copia non ci guadagna niente, perché
-    /// senza la chiave privata dell'emittente non lo può cambiare.
     public static func loadLicenseToken() -> String? {
         defaults.string(forKey: Key.licenseToken)
     }

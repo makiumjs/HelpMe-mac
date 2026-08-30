@@ -1,19 +1,9 @@
 import SwiftUI
-
-/// Le misure del PDP dell'alunno, scelte da un catalogo invece che scritte
-/// a mano.
-///
-/// Il testo di una misura compensativa è dicitura normativa: il Consiglio di
-/// Classe la delibera e finisce nel fascicolo. Sceglierla da un elenco, e
-/// vederne accanto la fonte, è più veloce che scriverla e non lascia spazio
-/// a riformulazioni involontarie.
 public struct MeasuresChecklistModal: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable public var teacherViewModel: TeacherViewModel
-
     private let student: StudentProfile
     @State private var selection: MeasureSelection
-
     public init(teacherViewModel: TeacherViewModel, student: StudentProfile) {
         self.teacherViewModel = teacherViewModel
         self.student = student
@@ -22,13 +12,10 @@ public struct MeasuresChecklistModal: View {
             dispensatory: student.dispensatoryMeasures
         ))
     }
-
     public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
-
             Divider()
-
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     group(
@@ -46,19 +33,14 @@ public struct MeasuresChecklistModal: View {
                 }
                 .padding(.trailing, 6)
             }
-
             Divider()
-
             HStack {
                 Button("Annulla") { dismiss() }
                     .keyboardShortcut(.cancelAction)
-
                 Spacer()
-
                 Text("\(selection.selectedIds.count) misure scelte")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-
                 Button("Salva misure") {
                     teacherViewModel.saveMeasures(selection, for: student)
                     dismiss()
@@ -71,7 +53,6 @@ public struct MeasuresChecklistModal: View {
         .padding(24)
         .frame(minWidth: 620, minHeight: 560)
     }
-
     private var header: some View {
         HStack(spacing: 12) {
             Image(systemName: "checklist")
@@ -87,7 +68,6 @@ public struct MeasuresChecklistModal: View {
             Spacer()
         }
     }
-
     private func group(_ title: String, caption: String, measures: [DidacticMeasure]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
@@ -95,7 +75,6 @@ public struct MeasuresChecklistModal: View {
             Text(caption)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-
             ForEach(measures) { measure in
                 Toggle(isOn: Binding(
                     get: { selection.isSelected(measure) },
@@ -112,11 +91,6 @@ public struct MeasuresChecklistModal: View {
             }
         }
     }
-
-    /// Le misure scritte a mano in schede compilate prima del catalogo. Si
-    /// mostrano com'erano: se un docente ha annotato "Banco vicino alla
-    /// cattedra", quella misura vale, e che il software non la conosca non è
-    /// un problema suo.
     private var customSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Misure aggiunte a mano")
@@ -124,7 +98,6 @@ public struct MeasuresChecklistModal: View {
             Text("Non sono nel catalogo: restano scritte come le hai messe tu.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-
             ForEach(selection.customMeasures, id: \.self) { misura in
                 HStack {
                     Text(misura)
@@ -142,9 +115,6 @@ public struct MeasuresChecklistModal: View {
             }
         }
     }
-
-    /// Non si spuntano: discendono da quello che hai già scelto. Mostrarle
-    /// serve a far vedere che la scheda le dirà ai colleghi curricolari.
     private var derivedStrategies: some View {
         let lists = selection.lists()
         let strategie = PdpSheetComposer.assessmentStrategies(

@@ -1,7 +1,5 @@
 import Foundation
 
-/// Errori dell'inferenza cloud, con messaggi che dicono al docente
-/// cosa è andato storto e cosa può farci.
 public enum GeminiError: LocalizedError {
     case missingApiKey
     case invalidApiKey(String?)
@@ -65,7 +63,6 @@ public final class GeminiService: LLMInferenceService, @unchecked Sendable {
         self.modelName = modelName
 
         let configuration = URLSessionConfiguration.default
-        // Generare una verifica richiede tempo, ma non deve restare appesa.
         configuration.timeoutIntervalForRequest = 60
         configuration.timeoutIntervalForResource = 300
         self.session = URLSession(configuration: configuration)
@@ -84,8 +81,6 @@ public final class GeminiService: LLMInferenceService, @unchecked Sendable {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        // La chiave viaggia nell'intestazione e non nella query: così non
-        // finisce nei log dei proxy né nella cronologia delle richieste.
         request.setValue(key, forHTTPHeaderField: "x-goog-api-key")
 
         let payload: [String: Any] = [
@@ -110,8 +105,6 @@ public final class GeminiService: LLMInferenceService, @unchecked Sendable {
         }
 
         guard (200...299).contains(http.statusCode) else {
-            // Il corpo dell'errore contiene il motivo vero: prima veniva
-            // scartato e restava solo un codice numerico.
             var body = ""
             for try await line in bytes.lines {
                 body += line
@@ -162,7 +155,6 @@ public final class GeminiService: LLMInferenceService, @unchecked Sendable {
         return fullText
     }
 
-    /// Traduce la risposta di errore di Google in qualcosa di azionabile.
     static func error(status: Int, body: String, model: String) -> GeminiError {
         let message = parseErrorMessage(from: body)
 
@@ -179,7 +171,6 @@ public final class GeminiService: LLMInferenceService, @unchecked Sendable {
         }
     }
 
-    /// Estrae `error.message` dal JSON di Google, se c'è.
     static func parseErrorMessage(from body: String) -> String? {
         guard let data = body.data(using: .utf8) else { return nil }
 
@@ -189,7 +180,7 @@ public final class GeminiService: LLMInferenceService, @unchecked Sendable {
                 return message
             }
         }
-        // Alcune risposte in streaming arrivano come array di oggetti.
+     
         if let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
            let error = array.first?["error"] as? [String: Any],
            let message = error["message"] as? String {

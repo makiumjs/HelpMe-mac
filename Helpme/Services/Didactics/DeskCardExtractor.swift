@@ -11,17 +11,6 @@ public nonisolated struct DeskCardEntry: Equatable, Sendable {
     public let text: String
 }
 
-/// Trova formule, definizioni e dati dentro il testo della lezione.
-///
-/// Il formulario è uno strumento compensativo (L. 170/2010): sta sul banco
-/// durante la lezione e la verifica, e il suo valore è essere **corto**. Per
-/// questo l'app propone e il docente taglia: il materiale esce nell'editor,
-/// dove si toglie quello che non serve.
-///
-/// Non "capisce" la lezione: riconosce forme. Una riga con un uguale e delle
-/// lettere è una formula; "X è Y" e "prende il nome di X" sono definizioni;
-/// un numero con un'unità di misura è un dato. Sono le tre cose che uno
-/// studente cerca sul banco quando si blocca.
 public nonisolated enum DeskCardExtractor {
 
     public static func extract(from text: String, limit: Int = 18) -> [DeskCardEntry] {
@@ -41,8 +30,6 @@ public nonisolated enum DeskCardExtractor {
             entries.append(DeskCardEntry(kind: kind, text: clean))
         }
 
-        // Prima le formule: sono la cosa che si dimentica per prima e che
-        // serve piu' in fretta durante una prova.
         let order: [DeskCardEntryKind] = [.formula, .definition, .datum]
         return order.flatMap { kind in entries.filter { $0.kind == kind } }
             .prefix(limit)
@@ -56,17 +43,13 @@ public nonisolated enum DeskCardExtractor {
         return nil
     }
 
-    /// Un uguale fra due espressioni, con almeno una lettera per parte.
     static func isFormula(_ sentence: String) -> Bool {
         guard let equals = sentence.firstIndex(of: "=") else { return false }
         let left = sentence[sentence.startIndex..<equals]
         let right = sentence[sentence.index(after: equals)...]
 
         guard left.contains(where: \.isLetter), !right.isEmpty else { return false }
-        // Il lato sinistro di una formula e' corto: "F", "P", "Consumo".
-        // "La velocita' della luce nel vuoto e' pari a c = 3·10^8 m/s" ha un
-        // lato sinistro lungo, ed e' comunque una formula: si guarda l'ultima
-        // parola prima dell'uguale.
+     
         let head = left.split(whereSeparator: { $0 == " " }).last ?? ""
         return head.count <= 24 && right.contains(where: { $0.isLetter || $0.isNumber })
     }
@@ -80,23 +63,18 @@ public nonisolated enum DeskCardExtractor {
         let lower = sentence.lowercased()
         if definitionMarkers.contains(where: { lower.contains($0) }) { return true }
 
-        // "La litosfera è lo strato rigido…": soggetto breve, verbo essere,
-        // e un predicato che spiega. Il soggetto lungo di solito racconta un
-        // fatto, non definisce.
         guard let range = lower.range(of: " è ") else { return false }
         let subject = lower[lower.startIndex..<range.lowerBound]
         let predicate = lower[range.upperBound...]
         return subject.split(separator: " ").count <= 4 && predicate.count >= 12
     }
 
-    /// Un numero seguito da un'unita' di misura.
     static func isDatum(_ sentence: String) -> Bool {
         let pattern = #"\d+([.,]\d+)?\s*(k?[gmlNJWVA]|km|cm|mm|kg|kW|kWh|MPa|Pa|°C|m/s|km/h|g/kWh|kg/l)\b"#
         return sentence.range(of: pattern, options: [.regularExpression]) != nil
     }
 }
 
-/// Impagina il formulario da banco.
 public nonisolated enum DeskCardComposer {
 
     public static func compose(entries: [DeskCardEntry], subject: String = "") -> String {

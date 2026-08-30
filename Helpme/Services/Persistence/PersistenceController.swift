@@ -1,18 +1,10 @@
 import Foundation
 import SwiftData
-
-/// Punto unico di accesso all'archivio SwiftData.
-///
-/// L'archivio resta sul dispositivo: contiene dati personali e sanitari
-/// di minori e non viene sincronizzato su iCloud.
 @MainActor
 public final class PersistenceController {
 
     public static let shared = PersistenceController()
-
     public let container: ModelContainer
-
-    /// Archivio su disco, in Application Support.
     private init() {
         let schema = Schema([StudentProfile.self, GloLogEntry.self, SchoolInfo.self])
         let configuration = ModelConfiguration(
@@ -24,8 +16,6 @@ public final class PersistenceController {
         do {
             container = try ModelContainer(for: schema, configurations: [configuration])
         } catch {
-            // Se l'archivio è illeggibile (disco pieno, migrazione fallita) l'app
-            // riparte in memoria: il docente può lavorare, ma va avvisato.
             PersistenceController.storeLoadFailure = error
             do {
                 container = try ModelContainer(
@@ -37,8 +27,6 @@ public final class PersistenceController {
             }
         }
     }
-
-    /// Archivio in memoria, per i test.
     public init(inMemory: Bool) {
         let schema = Schema([StudentProfile.self, GloLogEntry.self, SchoolInfo.self])
         do {
@@ -50,18 +38,12 @@ public final class PersistenceController {
             fatalError("Impossibile inizializzare l'archivio dati di test: \(error)")
         }
     }
-
-    /// Valorizzato se l'archivio su disco non si è aperto e si sta lavorando in memoria.
     public private(set) static var storeLoadFailure: Error?
-
     public var isRunningInMemoryFallback: Bool {
         PersistenceController.storeLoadFailure != nil
     }
 
     // MARK: - Intestazione scuola
-
-    /// Recupera l'unica intestazione salvata, creandola coi valori di default
-    /// al primo avvio.
     public static func loadOrCreateSchoolInfo(in context: ModelContext) -> SchoolInfo {
         let descriptor = FetchDescriptor<SchoolInfo>()
         if let existing = try? context.fetch(descriptor), let first = existing.first {

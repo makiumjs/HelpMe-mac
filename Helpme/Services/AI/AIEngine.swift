@@ -1,10 +1,7 @@
 import Foundation
 
-/// I motori di inferenza tra cui l'app può scegliere.
 public enum AIEngine: String, CaseIterable, Codable, Sendable {
-    /// Modello integrato nel sistema: nessuna chiave, nessun dato fuori dal dispositivo.
     case systemModel
-    /// Google Gemini: più capace sui documenti lunghi, richiede una API key.
     case gemini
 
     public var displayName: String {
@@ -29,11 +26,6 @@ public enum AIEngine: String, CaseIterable, Codable, Sendable {
     }
 }
 
-/// Decide quale motore usare e sa spiegare perché.
-///
-/// L'app deve funzionare su Mac molto diversi: dove il modello integrato c'è
-/// lo usa senza chiedere niente a nessuno, altrove ricade su Gemini. Il docente
-/// può sempre forzare la scelta, ma non è costretto a farla.
 @MainActor
 public struct EngineSelector {
 
@@ -47,21 +39,12 @@ public struct EngineSelector {
 
     public var isSystemModelUsable: Bool { systemStatus == .available }
 
-    /// I motori realmente utilizzabili in questo momento.
     public var usableEngines: [AIEngine] {
         var engines: [AIEngine] = []
         if isSystemModelUsable { engines.append(.systemModel) }
         if hasApiKey { engines.append(.gemini) }
         return engines
     }
-
-    /// Il motore consigliato per un certo formato didattico.
-    ///
-    /// I formati che riscrivono o estraggono da un testo dato stanno bene al
-    /// modello integrato. La verifica equipollente completa — obiettivi
-    /// curricolari da mantenere, misure compensative, quesiti scomposti e
-    /// griglia di valutazione, tutto insieme e in un documento lungo — chiede
-    /// di più: lì conviene il cloud, quando c'è.
     public func recommended(for format: DidacticFormat) -> AIEngine? {
         guard !usableEngines.isEmpty else { return nil }
 
@@ -70,13 +53,10 @@ public struct EngineSelector {
         return usableEngines.first
     }
 
-    /// Perché è stato scelto quel motore, in una riga da mostrare accanto al pulsante.
     public func rationale(for format: DidacticFormat, engine: AIEngine) -> String {
         switch engine {
         case .systemModel:
-            // Il ripiego sul modello locale per un formato che non regge non
-            // va nascosto dietro una frase rassicurante: qui il docente sta
-            // per ricevere un documento che va riletto riga per riga.
+       
             if format.needsCloudQuality {
                 return "Attenzione: senza API key questo formato lo genera il modello del Mac, "
                      + "che tende a rispondere alle domande invece di lasciarle aperte e sbaglia i calcoli. "
@@ -92,7 +72,6 @@ public struct EngineSelector {
         }
     }
 
-    /// Costruisce il servizio corrispondente.
     public func makeService(_ engine: AIEngine, apiKey: String) throws -> LLMInferenceService {
         switch engine {
         case .systemModel:
@@ -105,7 +84,6 @@ public struct EngineSelector {
         }
     }
 
-    /// Messaggio per quando non si può generare affatto.
     public var blockingMessage: String? {
         guard usableEngines.isEmpty else { return nil }
         if let explanation = systemStatus.explanation {

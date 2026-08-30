@@ -1,17 +1,13 @@
 import SwiftUI
 
 public struct WelcomeView: View {
-
     private let onCreateStudent: () -> Void
     private let onConfigureSchool: () -> Void
-
     public init(onCreateStudent: @escaping () -> Void, onConfigureSchool: @escaping () -> Void) {
         self.onCreateStudent = onCreateStudent
         self.onConfigureSchool = onConfigureSchool
     }
-
     private var accent: Color { Color.institutional }
-
     public var body: some View {
         VStack(spacing: 26) {
             Image(systemName: "person.2.badge.gearshape")
@@ -29,7 +25,6 @@ public struct WelcomeView: View {
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 460)
             }
-
             VStack(spacing: 10) {
                 Button(action: onCreateStudent) {
                     Label("Crea la prima scheda alunno", systemImage: "person.crop.circle.badge.plus")
@@ -47,7 +42,6 @@ public struct WelcomeView: View {
                 }
                 .buttonStyle(.borderless)
             }
-
             VStack(alignment: .leading, spacing: 7) {
                 Label("I dati degli alunni restano su questo dispositivo.", systemImage: "lock.fill")
                 Label("Verso l'IA vengono inviati solo dati anonimizzati: nome e diagnosi non escono dal Mac.", systemImage: "eye.slash.fill")

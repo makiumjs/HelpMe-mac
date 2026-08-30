@@ -1,10 +1,9 @@
 import Foundation
 import SwiftData
 
-public enum ProgramType: String, Codable, CaseIterable, Sendable, Hashable {
-    case minimi = "minimi"           // Obiettivi Minimi - Equipollente (Art. 15 c. 1 lett. b D.I. 182/2020)
-    case differenziato = "differenziato" // Programmazione Differenziata (Art. 15 c. 1 lett. c D.I. 182/2020)
-
+public nonisolated enum ProgramType: String, Codable, CaseIterable, Sendable, Hashable {
+    case minimi = "minimi"
+    case differenziato = "differenziato"
     public var localizedTitle: String {
         switch self {
         case .minimi:
@@ -14,11 +13,6 @@ public enum ProgramType: String, Codable, CaseIterable, Sendable, Hashable {
         }
     }
 
-    /// Il riferimento che compare sui documenti.
-    ///
-    /// Si cita il testo coordinato: il D.I. 182/2020 e' stato corretto dal
-    /// D.I. 153/2023, e citare solo il primo rimanda a un testo non piu'
-    /// vigente su un documento che entra nel fascicolo dell'alunno.
     public var legalReference: String {
         switch self {
         case .minimi:
@@ -28,12 +22,6 @@ public enum ProgramType: String, Codable, CaseIterable, Sendable, Hashable {
         }
     }
 }
-
-/// Scheda alunno persistita su disco.
-///
-/// Contiene dati personali e sanitari di minori: resta sempre in locale,
-/// e verso i servizi cloud viene inviata solo la forma pseudonimizzata
-/// prodotta da `PseudonymizedProfile`.
 @Model
 public final class StudentProfile {
     @Attribute(.unique) public var id: UUID
@@ -45,21 +33,8 @@ public final class StudentProfile {
     public var compensatoryMeasures: [String]
     public var dispensatoryMeasures: [String]
     public var createdAt: Date
-
-    /// Il lavoro in corso su questo alunno.
-    ///
-    /// Vivevano solo in memoria: il docente generava il materiale, chiudeva
-    /// l'app, e il lavoro spariva senza che niente lo avvertisse. Ora seguono
-    /// la scheda, quindi sopravvivono alla chiusura e tornano quando si
-    /// riseleziona l'alunno.
     public var lastSourceText: String = ""
     public var lastGeneratedContent: String = ""
-
-    /// L'ultimo glossario compilato per questo alunno.
-    ///
-    /// Sta a parte dal materiale in corso perche' serve dopo: la spiegazione
-    /// semplificata riusa le parole che il docente ha gia' scelto per lui,
-    /// invece di farle riscrivere da capo con parole diverse.
     public var personalGlossary: String = ""
 
     public var programType: ProgramType {
@@ -74,10 +49,6 @@ public final class StudentProfile {
         programType: ProgramType = .minimi,
         interest: String = "Informatica e Gaming",
         notes: String = "",
-        // Riferimenti al catalogo, non diciture scritte a mano: cosi' il
-        // documento riporta le parole della normativa e le misure finiscono
-        // sotto la voce giusta. I tempi aggiuntivi sono una misura
-        // dispensativa (Linee guida 4.4), non uno strumento compensativo.
         compensatoryMeasures: [String] = [
             "comp.sintesi-vocale",
             "comp.formulari"

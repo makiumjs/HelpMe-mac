@@ -3,7 +3,6 @@ import SwiftUI
 public struct SchoolHeaderConfigModal: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable public var teacherViewModel: TeacherViewModel
-    
     @State private var instituteName: String = ""
     @State private var subTypes: String = ""
     @State private var mechanographicCode: String = ""
@@ -14,7 +13,6 @@ public struct SchoolHeaderConfigModal: View {
     public init(teacherViewModel: TeacherViewModel) {
         self.teacherViewModel = teacherViewModel
     }
-    
     public var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack {
@@ -32,9 +30,7 @@ public struct SchoolHeaderConfigModal: View {
                 }
                 Spacer()
             }
-            
             Divider()
-            
             Form {
                 TextField("Denominazione Istituto:", text: $instituteName)
                 TextField("Indirizzi / Plessi:", text: $subTypes)
@@ -43,8 +39,6 @@ public struct SchoolHeaderConfigModal: View {
                 TextField("Anno Scolastico:", text: $schoolYear)
                 TextField("Docente Referente / Sostegno:", text: $teacherName)
             }
-            
-            // Anteprima Grafica
             VStack(spacing: 4) {
                 Text(instituteName.isEmpty ? "Denominazione Scuola" : instituteName)
                     .font(.headline)
@@ -63,9 +57,7 @@ public struct SchoolHeaderConfigModal: View {
             .padding(12)
             .background(Color.secondary.opacity(0.06))
             .cornerRadius(8)
-            
-            Spacer()
-            
+            Spacer()            
             HStack {
                 Button("Annulla") { dismiss() }
                     .keyboardShortcut(.cancelAction)

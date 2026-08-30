@@ -1,11 +1,4 @@
 import Foundation
-
-/// Converte il markdown prodotto dall'IA in WordprocessingML.
-///
-/// Serve perché i prompt chiedono esplicitamente grassetti e tabelle — la
-/// griglia di valutazione per il Consiglio di Classe è una tabella — e senza
-/// questa conversione finivano nel documento ufficiale come asterischi e
-/// righe di barre verticali.
 nonisolated enum MarkdownToOoxml {
 
     private static let accentGreen = "1E4620"
@@ -20,8 +13,6 @@ nonisolated enum MarkdownToOoxml {
 
         while index < lines.count {
             let line = lines[index].trimmingCharacters(in: .whitespaces)
-
-            // Tabella: riga di celle seguita dalla riga di separazione.
             if isTableRow(line), index + 1 < lines.count,
                isTableSeparator(lines[index + 1].trimmingCharacters(in: .whitespaces)) {
                 var tableLines: [String] = [line]
@@ -33,7 +24,6 @@ nonisolated enum MarkdownToOoxml {
                     cursor += 1
                 }
                 xml += table(from: tableLines)
-                // Word fonde due tabelle contigue: le separa un paragrafo vuoto.
                 xml += emptyParagraph()
                 index = cursor
                 continue
@@ -58,7 +48,6 @@ nonisolated enum MarkdownToOoxml {
             let stripped = line.replacingOccurrences(of: "^#+\\s*", with: "", options: .regularExpression)
             return heading(text: stripped, size: 26, color: midGreen, before: 180, after: 80)
         }
-        // Riga di soli trattini o asterischi: separatore orizzontale.
         if line.range(of: "^([-*_])\\1{2,}$", options: .regularExpression) != nil {
             return """
             <w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="CCCCCC"/></w:pBdr></w:pPr></w:p>
@@ -186,9 +175,6 @@ nonisolated enum MarkdownToOoxml {
     }
 
     // MARK: - Testo con grassetto e corsivo
-
-    /// Spezza il testo nei segmenti `**grassetto**`, `*corsivo*` e `` `codice` ``
-    /// e produce un `<w:r>` per ciascuno.
     static func runs(from text: String, size: Int, bold: Bool = false, color: String? = nil) -> String {
         let segments = parseInline(text)
         guard !segments.isEmpty else {
@@ -235,7 +221,6 @@ nonisolated enum MarkdownToOoxml {
                 flush(); bold.toggle(); i += 2; continue
             }
             if !code, char == "*" || char == "_" {
-                // Un underscore dentro una parola (nome_variabile) non è corsivo.
                 let previous = i > 0 ? characters[i - 1] : nil
                 let insideWord = char == "_" && (previous?.isLetter == true) && (next?.isLetter == true)
                 if !insideWord {
@@ -267,8 +252,6 @@ nonisolated enum MarkdownToOoxml {
             case "\"": result += "&quot;"
             case "'": result += "&apos;"
             default:
-                // I caratteri di controllo non sono ammessi in XML 1.0 e
-                // renderebbero il documento illeggibile a Word.
                 let value = scalar.value
                 let allowed = value == 0x09 || value == 0x0A || value == 0x0D || value >= 0x20
                 if allowed { result.unicodeScalars.append(scalar) }

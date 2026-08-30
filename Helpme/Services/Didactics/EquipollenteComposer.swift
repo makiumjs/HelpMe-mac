@@ -1,18 +1,5 @@
 import Foundation
 
-/// Costruisce la verifica equipollente dalla verifica della classe.
-///
-/// Non riscrive i contenuti: quelli sono già quelli giusti, li ha scelti il
-/// docente curricolare per la sua classe, e l'equipollenza sta nel mantenere
-/// gli stessi obiettivi (D.I. 182/2020 Art. 15). Quello che l'app fa è il
-/// lavoro di segreteria che ruba il pomeriggio: rinumerare, togliere i
-/// punteggi dal testo dei quesiti e portarli in griglia, calcolare il tempo
-/// maggiorato, elencare gli strumenti concessi, lasciare lo spazio per
-/// scrivere.
-///
-/// Quello che non fa è scomporre una domanda aperta in micro-step guidati.
-/// Quella è la parte che richiede di conoscere l'alunno, e resta al docente
-/// di sostegno: il documento esce nell'editor, dove si completa.
 public nonisolated enum EquipollenteComposer {
 
     public struct Input: Sendable {
@@ -22,7 +9,6 @@ public nonisolated enum EquipollenteComposer {
         public let compensatory: [String]
         public let dispensatory: [String]
         public let exam: ParsedExam
-
         public init(
             studentName: String, classInfo: String, programTitle: String,
             compensatory: [String], dispensatory: [String], exam: ParsedExam
@@ -35,9 +21,6 @@ public nonisolated enum EquipollenteComposer {
             self.exam = exam
         }
     }
-
-    /// Tempo maggiorato del 30% (Linee guida 4.4), arrotondato ai 5 minuti:
-    /// nessuno consegna un compito dopo settantotto minuti esatti.
     public static func extendedMinutes(from original: Int) -> Int {
         let extended = Double(original) * 1.3
         return Int((extended / 5).rounded(.up)) * 5
@@ -80,9 +63,6 @@ public nonisolated enum EquipollenteComposer {
     }
 
     // MARK: - Le parti
-
-    /// Cosa l'alunno può tenere sul banco. Sta sul suo foglio perché è una
-    /// cosa che deve sapere lui, non solo chi sorveglia.
     private static func allowedTools(_ compensatory: [String]) -> String? {
         let tools = compensatory
             .compactMap { MeasureCatalog.matching($0) }
@@ -123,23 +103,12 @@ public nonisolated enum EquipollenteComposer {
         }
         return blocks
     }
-
-    /// Lo spazio per rispondere cresce con il punteggio: un quesito da cinque
-    /// punti chiede più righe di uno da due. Chi scrive a fatica ha bisogno
-    /// di righe grandi, non di margini stretti.
     private static func writingLines(for question: ExamQuestion) -> Int {
-        // Un completamento, un vero/falso o una tabella da riempire si
-        // rispondono dentro il quesito: le righe sotto sono spazio sprecato,
-        // e su un foglio che deve restare corto contano.
         if answersInPlace(question) { return 0 }
         guard let points = question.points else { return 4 }
-        // Righe generose ma non sprecate: chi scrive a fatica ha bisogno di
-        // spazio, ma un compito di sei pagine si affronta peggio di uno di due.
         return min(8, max(3, points + 1))
     }
 
-    /// Una tabella markdown o un elenco vogliono una riga vuota davanti,
-    /// altrimenti restano attaccati alla frase e non si formattano.
     static func spacedBeforeBlocks(_ text: String) -> String {
         let lines = text.components(separatedBy: "\n")
         guard lines.count > 1 else { return text }
@@ -154,16 +123,6 @@ public nonisolated enum EquipollenteComposer {
         }
         return result.joined(separator: "\n")
     }
-
-    /// La scomposizione in micro-step di un quesito, quando la sua forma la
-    /// rende prevedibile.
-    ///
-    /// Sono i due casi in cui un docente di sostegno scrive sempre le stesse
-    /// righe: un problema da calcolare, che si scompone in dati-formula-
-    /// -calcolo-risultato, e una consegna che chiede un numero preciso di
-    /// elementi, che si scompone in altrettante caselle numerate. Il resto —
-    /// scomporre una domanda aperta di storia — richiede di conoscere
-    /// l'alunno e resta al docente.
     static func guidedSteps(for text: String) -> [String]? {
         let lower = text.folding(options: [.diacriticInsensitive, .caseInsensitive],
                                  locale: Locale(identifier: "it_IT"))
@@ -184,17 +143,11 @@ public nonisolated enum EquipollenteComposer {
         return nil
     }
 
-    /// "Elenca i tre tipi di margine" → 3. Serve a dare una casella per
-    /// ciascuno, invece di un unico spazio in cui incastrarli tutti.
     static func requestedCount(in text: String) -> Int? {
         let words = ["due": 2, "tre": 3, "quattro": 4, "cinque": 5, "sei": 6]
         guard ["elenca", "indica", "individua", "scrivi", "cita", "nomina"]
             .contains(where: { text.hasPrefix($0) }) else { return nil }
 
-        // Si scorre da sinistra e si prende il primo numero: "Elenca i tre
-        // tipi di margine fra due placche" ne contiene due, e quello giusto
-        // e' quello che qualifica la cosa da elencare, cioe' il primo.
-        // Ciclare su un dizionario dava l'uno o l'altro a caso.
         for token in text.split(whereSeparator: { !$0.isLetter && !$0.isNumber }) {
             if let value = words[String(token)] { return value }
             if let digit = Int(token), (2...6).contains(digit) { return digit }
@@ -202,12 +155,11 @@ public nonisolated enum EquipollenteComposer {
         return nil
     }
 
-    /// Vero quando la risposta si scrive dentro il testo del quesito.
     static func answersInPlace(_ question: ExamQuestion) -> Bool {
         let text = question.text
-        return text.contains("______")            // completamento
-            || text.contains("\n|")               // tabella da riempire
-            || text.contains(" V  F")             // vero/falso
+        return text.contains("______")
+            || text.contains("\n|")
+            || text.contains(" V  F")
             || text.localizedCaseInsensitiveContains("vere o false")
     }
 
@@ -221,18 +173,6 @@ public nonisolated enum EquipollenteComposer {
         return index < alphabet.count ? String(alphabet[index]) : "\(index + 1)"
     }
 
-    /// Il punteggio di ogni quesito, completando quelli che la prova non
-    /// assegnava esplicitamente.
-    ///
-    /// In una verifica ogni quesito ha un punteggio: una griglia con caselle
-    /// vuote non e' una griglia, e lascia il lavoro a chi doveva riceverlo
-    /// fatto. Quelli che proponiamo noi si distinguono, perche' restano da
-    /// confermare.
-    ///
-    /// - Se la prova dichiara un totale, il residuo si divide fra i quesiti
-    ///   scoperti, dando l'eventuale avanzo ai primi.
-    /// - Se non lo dichiara ma qualche punteggio c'e', si usa la media.
-    /// - Se non c'e' niente, un punto per quesito: e' un segnaposto onesto.
     static func pointsByQuestion(_ exam: ParsedExam) -> (points: [String: Int], proposed: Set<String>) {
         var points: [String: Int] = [:]
         for question in exam.questions where question.points != nil {
@@ -262,9 +202,6 @@ public nonisolated enum EquipollenteComposer {
         return (points, Set(uncovered))
     }
 
-    /// La griglia è obbligatoria (D.I. 182/2020) e qui si costruisce dai
-    /// punteggi che il docente curricolare aveva già assegnato: l'equipollenza
-    /// sta anche nel non cambiare il peso dei quesiti.
     private static func grid(for exam: ParsedExam) -> String {
         var rows = ["| Quesito | Indicatore | Punti previsti | Punti assegnati |",
                     "|---|---|---|---|"]
@@ -272,8 +209,6 @@ public nonisolated enum EquipollenteComposer {
         let (points, proposed) = pointsByQuestion(exam)
         for question in exam.questions {
             let value = points[question.number].map(String.init) ?? ""
-            // Corsivo su quelli proposti da noi: si vedono a colpo d'occhio
-            // e si sa quali confermare.
             let cell = proposed.contains(question.number) ? "*\(value)*" : value
             rows.append("| \(question.number) | \(indicator(for: question)) | \(cell) | |")
         }
@@ -291,17 +226,11 @@ public nonisolated enum EquipollenteComposer {
         return grid
     }
 
-    /// Un indicatore di partenza, dedotto da come è formulato il quesito.
-    ///
-    /// Il docente lo corregge: è un punto da cui partire, non una valutazione
-    /// automatica. Ma quattordici righe che dicono tutte "Conoscenza dei
-    /// contenuti" non fanno risparmiare niente a nessuno.
     static func indicator(for question: ExamQuestion) -> String {
         let text = question.text
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "it_IT"))
             .trimmingCharacters(in: CharacterSet(charactersIn: "\"«»' "))
 
-        // I problemi con sotto-punti sono applicativi comunque siano scritti.
         if !question.subItems.isEmpty { return "Applicazione: imposta e svolge il procedimento" }
 
         for (openers, indicator) in indicatorRules where openers.contains(where: { text.hasPrefix($0) }) {
@@ -309,21 +238,14 @@ public nonisolated enum EquipollenteComposer {
         }
         if text.contains("calcola") { return "Applicazione: imposta e svolge il procedimento" }
 
-        // L'interrogativo non sta sempre in testa: "La rinnovata circolazione
-        // della moneta che cosa permetteva al re?" chiede la stessa cosa di
-        // "Che cosa permetteva al re la rinnovata circolazione della moneta?".
         for (openers, indicator) in indicatorRules where openers.contains(where: { text.contains($0) }) {
             return indicator
         }
         return "Conoscenza dei contenuti"
     }
 
-    /// Le forme in cui i docenti scrivono davvero i quesiti: consegne
-    /// all'imperativo e domande dirette.
     private static let indicatorRules: [(openers: [String], indicator: String)] = [
         (["perche"], "Comprensione: spiega le cause"),
-        // Con e senza apostrofo: "Com'era organizzato il territorio?" e'
-        // la forma piu' comune in cui una domanda del genere viene scritta.
         (["come ", "com'era", "com'e", "concretamente, come", "in che modo"],
          "Comprensione: descrive il procedimento"),
         (["calcola", "determina", "converti", "risolvi"], "Applicazione: imposta e svolge il procedimento"),
@@ -357,11 +279,7 @@ public nonisolated enum EquipollenteComposer {
 }
 
 
-private extension String {
-    /// "VERIFICA DI MECCANICA AGRARIA" → "Verifica di meccanica agraria".
-    /// Il maiuscolo integrale e' faticoso da leggere per chiunque, e per un
-    /// alunno con dislessia toglie proprio gli appigli che usa: il profilo
-    /// della parola.
+nonisolated private extension String {
     var capitalizedFirstOnly: String {
         let letters = filter(\.isLetter)
         guard !letters.isEmpty, letters.allSatisfy(\.isUppercase) else { return self }

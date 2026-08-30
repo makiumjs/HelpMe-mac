@@ -1,10 +1,4 @@
 import SwiftUI
-
-/// La bacheca dei traguardi.
-///
-/// I badge venivano assegnati dal timer e non li vedeva nessuno. Qui si
-/// mostrano sia quelli conquistati sia quelli ancora da prendere: sapere
-/// quanto manca al prossimo è metà della motivazione.
 public struct BadgesModalView: View {
     public let completedSessions: Int
     public let settings: AccessibilitySettings
@@ -27,7 +21,6 @@ public struct BadgesModalView: View {
         VStack(spacing: 0) {
             header
             Divider()
-
             ScrollView {
                 VStack(spacing: 10) {
                     ForEach(FocusBadge.catalog) { badge in
@@ -36,7 +29,6 @@ public struct BadgesModalView: View {
                 }
                 .padding(20)
             }
-
             if let next {
                 Divider()
                 nextGoal(next)
@@ -53,7 +45,6 @@ public struct BadgesModalView: View {
             Image(systemName: "rosette")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(settings.theme.accent)
-
             VStack(alignment: .leading, spacing: 1) {
                 Text("I tuoi traguardi")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -64,9 +55,6 @@ public struct BadgesModalView: View {
             }
 
             Spacer()
-
-            // Come nelle altre schede di studio: chiudere è un'uscita, non
-            // l'azione principale, e resta bordato in tutte e tre.
             Button("Chiudi", action: onClose)
                 .buttonStyle(.bordered)
                 .keyboardShortcut(.cancelAction)
@@ -109,9 +97,7 @@ public struct BadgesModalView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .multilineTextAlignment(.leading)
             }
-
             Spacer(minLength: 0)
-
             if unlocked {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 16))
@@ -138,7 +124,6 @@ public struct BadgesModalView: View {
 
     private func nextGoal(_ badge: FocusBadge) -> some View {
         let missing = badge.requiredSessions - completedSessions
-
         return HStack(spacing: 10) {
             Image(systemName: "target")
                 .font(.system(size: 14, weight: .semibold))
@@ -149,9 +134,7 @@ public struct BadgesModalView: View {
                  : "Mancano **\(missing) sessioni** a «\(badge.title)».")
                 .font(.system(size: 12.5))
                 .foregroundStyle(settings.theme.text)
-
             Spacer()
-
             ProgressView(
                 value: Double(completedSessions),
                 total: Double(max(1, badge.requiredSessions))

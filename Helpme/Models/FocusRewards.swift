@@ -1,10 +1,5 @@
 import Foundation
 
-/// Un traguardo del timer Focus.
-///
-/// Prima i badge erano stringhe assegnate da un timer e mai mostrate da
-/// nessuna vista: qui diventano un catalogo, così si può anche far vedere
-/// allo studente quello che deve ancora conquistare.
 public struct FocusBadge: Identifiable, Sendable, Equatable {
     public let id: String
     public let title: String
@@ -51,20 +46,15 @@ public struct FocusBadge: Identifiable, Sendable, Equatable {
         )
     ]
 
-    /// I badge già conquistati con questo numero di sessioni.
     public static func earned(afterSessions sessions: Int) -> [FocusBadge] {
         catalog.filter { sessions >= $0.requiredSessions }
     }
 
-    /// Il prossimo da conquistare, se ne resta uno.
     public static func next(afterSessions sessions: Int) -> FocusBadge? {
         catalog.first { sessions < $0.requiredSessions }
     }
 }
 
-/// Una pausa attiva: la specifica le prevedeva, ma a fine sessione il timer
-/// si limitava ad azzerarsi. Per chi ha ADHD la pausa non è "smettere",
-/// è cambiare canale sensoriale per qualche minuto.
 public struct ActiveBreak: Identifiable, Sendable, Equatable {
     public let id: String
     public let title: String
@@ -118,10 +108,6 @@ public struct ActiveBreak: Identifiable, Sendable, Equatable {
         )
     ]
 
-    /// La pausa proposta dopo l'ennesima sessione.
-    ///
-    /// Ruota in modo deterministico: sapere già cosa arriva è un vantaggio,
-    /// non un difetto, perché toglie la sorpresa a chi la sorpresa distrae.
     public static func suggestion(afterSession sessionNumber: Int) -> ActiveBreak {
         guard !catalog.isEmpty else {
             return ActiveBreak(id: "pausa", title: "Pausa", instruction: "Stacca per qualche minuto.", symbol: "pause", seconds: 120)

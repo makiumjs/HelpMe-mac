@@ -1,16 +1,8 @@
 import SwiftUI
-
-/// Costruisce la mappa concettuale come si scrive una scaletta.
-///
-/// La gerarchia è la parte che richiede di conoscere la materia e l'alunno:
-/// quella resta al docente. L'app fa il resto — propone i termini del testo,
-/// tiene i rientri validi, e scrive il markup che rende la mappa navigabile.
 public struct MindmapBuilderModal: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable public var appViewModel: AppViewModel
-
     @State private var rows: [MindmapDraftRow]
-
     public init(appViewModel: AppViewModel) {
         self.appViewModel = appViewModel
         let existing = MindmapParser.parse(appViewModel.generatedContent)
@@ -18,14 +10,11 @@ public struct MindmapBuilderModal: View {
             ? [MindmapDraftRow()]
             : MindmapDraft.rows(from: existing))
     }
-
     private var filled: Int { rows.filter(\.isFilled).count }
-
     public var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
             Divider()
-
             ScrollView {
                 VStack(spacing: 4) {
                     ForEach(Array($rows.enumerated()), id: \.element.id) { index, $row in
@@ -34,7 +23,6 @@ public struct MindmapBuilderModal: View {
                 }
                 .padding(.trailing, 6)
             }
-
             HStack {
                 Button {
                     rows.append(MindmapDraftRow(level: rows.last?.level ?? 0))
@@ -42,7 +30,6 @@ public struct MindmapBuilderModal: View {
                     Label("Aggiungi una voce", systemImage: "plus.circle")
                 }
                 .buttonStyle(.bordered)
-
                 if !appViewModel.sourceText.trimmingCharacters(in: .whitespaces).isEmpty {
                     Button {
                         seedFromSourceText()
@@ -53,14 +40,12 @@ public struct MindmapBuilderModal: View {
                     .help("Aggiunge i termini tecnici trovati nel testo, da riordinare")
                 }
             }
-
             Divider()
             footer
         }
         .padding(22)
         .frame(minWidth: 640, minHeight: 580)
     }
-
     private var header: some View {
         HStack(spacing: 12) {
             Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
@@ -75,7 +60,6 @@ public struct MindmapBuilderModal: View {
             Spacer()
         }
     }
-
     private var footer: some View {
         HStack {
             Button("Annulla") { dismiss() }
@@ -94,24 +78,19 @@ public struct MindmapBuilderModal: View {
             .disabled(filled == 0)
         }
     }
-
     private func rowEditor(_ row: Binding<MindmapDraftRow>, at index: Int) -> some View {
         HStack(spacing: 6) {
-            // Il rientro si vede: è la gerarchia, non un vezzo grafico.
             Spacer().frame(width: CGFloat(row.wrappedValue.level) * 26)
-
             Image(systemName: row.wrappedValue.level == 0 ? "circle.fill" : "arrow.turn.down.right")
                 .font(.system(size: row.wrappedValue.level == 0 ? 7 : 10))
                 .foregroundStyle(row.wrappedValue.level == 0 ? Color.institutional : .secondary)
                 .frame(width: 14)
-
             TextField("Concetto", text: row.title)
                 .textFieldStyle(.roundedBorder)
             TextField("Dettaglio o esempio (facoltativo)", text: row.detail)
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
                 .frame(maxWidth: 220)
-
             Button {
                 rows[index].level -= 1
             } label: { Image(systemName: "arrow.left") }
@@ -119,7 +98,6 @@ public struct MindmapBuilderModal: View {
                 .disabled(row.wrappedValue.level == 0)
                 .help("Porta fuori di un livello")
                 .accessibilityLabel("Porta fuori di un livello")
-
             Button {
                 rows[index].level += 1
             } label: { Image(systemName: "arrow.right") }
@@ -127,7 +105,6 @@ public struct MindmapBuilderModal: View {
                 .disabled(!MindmapDraft.canIndent(rows, at: index))
                 .help("Porta dentro il concetto sopra")
                 .accessibilityLabel("Porta dentro il concetto sopra")
-
             Button(role: .destructive) {
                 rows.remove(at: index)
                 if rows.isEmpty { rows = [MindmapDraftRow()] }
@@ -136,17 +113,12 @@ public struct MindmapBuilderModal: View {
                 .accessibilityLabel("Elimina questa voce")
         }
     }
-
-    /// Aggiunge i termini che l'estrattore trova nel testo: la fatica di
-    /// scovarli è già stata fatta per il glossario, e riordinarli è
-    /// esattamente il lavoro che costruisce la mappa.
     private func seedFromSourceText() {
         let esistenti = Set(rows.map { $0.title.lowercased() })
         let nuovi = GlossaryExtractor.extract(from: appViewModel.sourceText, limit: 10)
             .map(\.term)
             .filter { !esistenti.contains($0.lowercased()) }
             .map { MindmapDraftRow(title: $0.capitalizedFirstLetter, level: 1) }
-
         if rows.count == 1, !rows[0].isFilled { rows.removeAll() }
         rows.append(contentsOf: nuovi)
     }

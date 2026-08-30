@@ -10,9 +10,6 @@ public struct MainWorkspaceView: View {
     @State private var showSettingsPopover: Bool = false
     @State private var showDocumentImporter: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    /// I formati che il selettore di sistema lascia scegliere, ricavati
-    /// dall'elenco di quelli che l'estrattore sa davvero leggere.
     private static let importableTypes: [UTType] = {
         var types: [UTType] = [.pdf, .plainText, .rtf, .epub]
         for ext in ["docx", "md", "markdown"] {
@@ -20,18 +17,15 @@ public struct MainWorkspaceView: View {
         }
         return types
     }()
-    
     public enum WorkspaceTab: String, CaseIterable {
         case editor = "Docente: Editor & Generatore"
         case studentReader = "Studente: Lettura & Studio DSA"
     }
-    
     public init(appViewModel: AppViewModel) {
         self._appViewModel = State(initialValue: appViewModel)
         self._teacherViewModel = State(initialValue: TeacherViewModel(appViewModel: appViewModel))
         self._studentViewModel = State(initialValue: StudentReaderViewModel(appViewModel: appViewModel))
     }
-    
     public var body: some View {
         Group {
             if appViewModel.hasNoStudents {
@@ -53,13 +47,10 @@ public struct MainWorkspaceView: View {
 
     private var workspace: some View {
         NavigationSplitView {
-            // SIDEBAR SINISTRA
             TeacherSidebarView(appViewModel: appViewModel, teacherViewModel: teacherViewModel)
                 .navigationSplitViewColumnWidth(min: 260, ideal: 290, max: 340)
         } detail: {
-            // AREA CENTRALE
             VStack(spacing: 0) {
-                // Toolbar Superiore con Switcher Modalità
                 HStack(spacing: 16) {
                     Picker("Modalità:", selection: $selectedTab) {
                         ForEach(WorkspaceTab.allCases, id: \.self) { tab in
@@ -71,8 +62,6 @@ public struct MainWorkspaceView: View {
                     .accessibilityLabel("Selettore modalità di lavoro docente o studente")
                     
                     Spacer()
-                    
-                    // Motore in uso: scelto dall'app, modificabile dal docente
                     Menu {
                         Button {
                             appViewModel.engineOverride = nil
@@ -117,8 +106,6 @@ public struct MainWorkspaceView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .help(appViewModel.engineRationale ?? "")
                     .accessibilityLabel("Motore di generazione: \(appViewModel.activeEngine?.displayName ?? "nessuno disponibile")")
-                    
-                    // Pulsante Impostazioni Accessibilità & API
                     Button(action: { showSettingsPopover.toggle() }) {
                         Image(systemName: "slider.horizontal.3")
                             .font(.system(size: 15, weight: .semibold))
@@ -137,8 +124,6 @@ public struct MainWorkspaceView: View {
                 .padding(.vertical, 10)
                 .background(Color.appControlBackground)
                 .overlay(Divider(), alignment: .bottom)
-                
-                // Contenuto Vista Selezionata
                 switch selectedTab {
                 case .editor:
                     editorWorkspaceView()
@@ -152,20 +137,13 @@ public struct MainWorkspaceView: View {
     // MARK: - Editor Workspace
     private func editorWorkspaceView() -> some View {
         AdaptiveHSplit {
-            // Colonna 1: Testo Curricolare di Partenza
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
                     Label("Testo / Verifica Curricolare Base", systemImage: "doc.plaintext.fill")
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundColor(Color.institutional)
-
                     Spacer()
-
                     dictationButton
-
-                    // Importazione di materiale vero dal disco: senza questa
-                    // il retrieval poteva solo ripescare il testo dell'editor,
-                    // cioè quello che stava già per finire nel prompt.
                     Button(action: { showDocumentImporter = true }) {
                         if appViewModel.isImportingDocuments {
                             HStack(spacing: 5) {
@@ -174,9 +152,6 @@ public struct MainWorkspaceView: View {
                                     .font(.system(size: 11, weight: .medium, design: .rounded))
                             }
                         } else {
-                            // "Importa documenti" veniva troncato in
-                            // "Importa docu…" già a 900pt: il verbo basta,
-                            // il resto lo dice il suggerimento.
                             Label("Importa", systemImage: "doc.badge.plus")
                                 .font(.system(size: 11, weight: .medium, design: .rounded))
                         }
@@ -200,12 +175,7 @@ public struct MainWorkspaceView: View {
                 TextEditor(text: $appViewModel.sourceText)
                     .font(.system(.body, design: .monospaced))
                     .scrollContentBackground(.hidden)
-                    .padding(8)
-                    // Un riquadro vuoto accanto a un pulsante "Genera" si
-                    // legge come una casella dove chiedere qualcosa all'IA.
-                    // Qui invece ci va il testo da trasformare: se non lo si
-                    // dice, l'istruzione scritta dal docente finisce nel
-                    // prompt al posto della lezione.
+                    .padding(13)
                     .overlay(alignment: .topLeading) {
                         if appViewModel.sourceText.isEmpty {
                             Text("Incolla qui la lezione o la verifica della classe da adattare.\n\nNon è una casella di richieste: questo è il testo di partenza. Con «Importa» il documento finisce direttamente qui.")
@@ -234,8 +204,6 @@ public struct MainWorkspaceView: View {
                 if !appViewModel.indexedDocuments.isEmpty {
                     indexedDocumentsRow
                 }
-
-                // Bottone Generazione ad Alto Contrasto
                 Button(action: {
                     Task {
                         await appViewModel.generateMaterial()
@@ -299,7 +267,6 @@ public struct MainWorkspaceView: View {
                 appViewModel.applyLiveDictation()
             }
         } trailing: {
-            // Colonna 2: Output Generato & Pronto per l'Esportazione
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Label("Materiale Didattico Inclusivo", systemImage: "checkmark.seal.fill")
@@ -307,10 +274,6 @@ public struct MainWorkspaceView: View {
                         .foregroundColor(Color.institutional)
                     
                     Spacer()
-                    
-                    // Copiare negli appunti non si vede: senza un riscontro
-                    // l'unico modo di sapere se ha funzionato e' andare a
-                    // incollare da qualche parte.
                     Button(action: {
                         Clipboard.copy(appViewModel.generatedContent)
                         justCopied = true
@@ -329,7 +292,6 @@ public struct MainWorkspaceView: View {
                     .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: justCopied)
                     .accessibilityLabel(justCopied ? "Copiato negli appunti" : "Copia il materiale negli appunti")
                 }
-                
                 TextEditor(text: $appViewModel.generatedContent)
                     .font(.system(.body, design: .rounded))
                     .scrollContentBackground(.hidden)
@@ -376,7 +338,6 @@ public struct MainWorkspaceView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.red)
                 .symbolEffect(.variableColor, isActive: true)
-
             Text(appViewModel.dictation.liveTranscript.isEmpty
                  ? "Sto ascoltando… parla pure."
                  : appViewModel.dictation.liveTranscript)
@@ -384,9 +345,7 @@ public struct MainWorkspaceView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
-
             Spacer(minLength: 4)
-
             Button("Fine") {
                 Task { await appViewModel.toggleDictation() }
             }
@@ -403,7 +362,6 @@ public struct MainWorkspaceView: View {
     }
 
     // MARK: - Documenti indicizzati
-
     private var indexedDocumentsRow: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
@@ -413,9 +371,7 @@ public struct MainWorkspaceView: View {
                 )
                 .font(.system(size: 10.5, weight: .medium, design: .rounded))
                 .foregroundStyle(.secondary)
-
                 Spacer()
-
                 Button("Svuota") {
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
                         appViewModel.clearSemanticIndex()
@@ -464,7 +420,6 @@ public struct MainWorkspaceView: View {
             .frame(height: 28)
         }
     }
-
     // MARK: - Impostazioni Accessibilità & API
     private func accessibilityAndApiSettingsView() -> some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -476,15 +431,9 @@ public struct MainWorkspaceView: View {
                     .font(.headline)
                     .bold()
             }
-            
             Divider()
-            
-            // Configurazione IA, riservata a chi installa l'app
             AdminConfigurationSection(appViewModel: appViewModel)
-            
             Divider()
-            
-            // Tipografia Accessibile DSA
             VStack(alignment: .leading, spacing: 8) {
                 Label("Tipografia Inclusiva", systemImage: "textformat.size")
                     .font(.caption)
@@ -497,12 +446,9 @@ public struct MainWorkspaceView: View {
                     }
                 }
                 .pickerStyle(.menu)
-
                 Text(appViewModel.accessibilitySettings.fontFamily.explanation)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-
-                // Anteprima con il font davvero in uso.
                 Text("Il pistone scende e aspira la miscela.")
                     .font(appViewModel.accessibilitySettings.fontFamily.font(
                         size: CGFloat(appViewModel.accessibilitySettings.fontSize)))
@@ -513,7 +459,6 @@ public struct MainWorkspaceView: View {
                     .foregroundColor(appViewModel.accessibilitySettings.theme.text)
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                     .accessibilityLabel("Anteprima del carattere selezionato")
-                
                 VStack(spacing: 6) {
                     HStack {
                         Text("Dimensione Font: \(Int(appViewModel.accessibilitySettings.fontSize))pt")
@@ -522,7 +467,6 @@ public struct MainWorkspaceView: View {
                     }
                     Slider(value: $appViewModel.accessibilitySettings.fontSize, in: 14...32, step: 1)
                 }
-                
                 VStack(spacing: 6) {
                     HStack {
                         Text("Interlinea: \(Int(appViewModel.accessibilitySettings.lineSpacing))pt")
@@ -532,10 +476,7 @@ public struct MainWorkspaceView: View {
                     Slider(value: $appViewModel.accessibilitySettings.lineSpacing, in: 4...24, step: 2)
                 }
             }
-            
             Divider()
-            
-            // Tema Cromatico & Contrasto
             VStack(alignment: .leading, spacing: 6) {
                 Label("Tema Visivo (Anti-Affaticamento)", systemImage: "paintpalette.fill")
                     .font(.caption)
@@ -547,11 +488,9 @@ public struct MainWorkspaceView: View {
                     }
                 }
                 .pickerStyle(.menu)
-
                 Toggle("Sillabe a colori alternati", isOn: $appViewModel.accessibilitySettings.syllableColorsEnabled)
                     .font(.caption)
                     .help("Colora una sillaba sì e una no, per non perdere il segno nelle parole lunghe")
-
                 Toggle("Applica tema e carattere a tutta l'app", isOn: $appViewModel.accessibilitySettings.applyThemeToWholeApp)
                     .font(.caption)
             }
