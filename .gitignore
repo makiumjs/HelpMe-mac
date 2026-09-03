@@ -1,5 +1,6 @@
 # Build e artefatti Xcode
 build/
+.build/
 DerivedData/
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
