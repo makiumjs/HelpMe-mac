@@ -17,7 +17,7 @@ decisione presa bene si rimette in discussione da capo.
 | Cartella | `~/Progetti/HelpMe/Helpme` | `~/Progetti/HelpMe-Windows` |
 | Remote | `makiumjs/HelpMe-mac` | `makiumjs/HelpMe-windows` |
 | Stack | Swift 6, SwiftUI, SwiftData | C# .NET 8, WinUI 3 |
-| Test | 418 (403 XCTest + 15 Swift Testing) | 379 |
+| Test | 426 (411 XCTest + 15 Swift Testing) | 379 |
 | Sorgente | ~9.500 righe | — |
 | Motore generativo | **rimosso** | **ancora presente** |
 | Permesso di rete | **assente** | presente |
@@ -234,6 +234,16 @@ sarebbe arrivato in produzione con l'aria di un rilievo normativo.
 4. **Minuti concessi contro minuti usati.** Tracciamento orario in `GloLogEntry`,
    riga di interfaccia dedicata nel diario GLO con calcolo percentuale istantaneo
    e sintesi del monitoraggio dei tempi aggiuntivi nel report per il Dirigente.
+5. **Linguistica computazionale locale e carico cognitivo.** Motore
+   `CognitiveLoadAnalyzer` basato su Apple `NaturalLanguage`: rileva frasi lunghe
+   (>20 parole), forme passive, doppie negazioni e suggerisce sinonimi ad alta
+   frequenza con pulsanti di sostituzione rapida nel banco di semplificazione.
+6. **Scomposizione procedurale estesa (`guidedSteps`).** Riconoscimento intelligente
+   anche con contesto o numerazione premessa; scaffolding differenziato per
+   calcoli/problemi numerici e tabelle di confronto a due colonne.
+7. **Suggeritore proattivo delle misure da banco.** Regole esperte in
+   `PdpCoherenceChecker` che consigliano linea del tempo (storia), dizionario
+   digitale (lingue) e gestione dell'affaticamento grafico.
 
 ---
 

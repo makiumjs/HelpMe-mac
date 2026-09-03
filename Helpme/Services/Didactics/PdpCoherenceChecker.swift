@@ -158,6 +158,44 @@ public nonisolated enum PdpCoherenceChecker {
             }
         }
 
+        // 7. Riferimenti storici o cronologici con misura di schemi/linea del tempo
+        if compIds.contains("comp.schemi") || compIds.contains("comp.mappe") || hasPartialMatch(compensatory, keywords: ["linea del tempo", "schemi"]) {
+            if hasHistoryOrDates(in: fullExamText) && !fullExamText.contains("linea del tempo") && !fullExamText.contains("schema cronologico") {
+                notices.append(Notice(
+                    id: "pdp.suggest.history-timeline",
+                    severity: .suggestion,
+                    title: "Supporto visivo consigliato: Linea del Tempo",
+                    message: "La verifica include riferimenti a date ed eventi storici. Per \(studentName) è opportuno autorizzare l'uso della linea del tempo o di uno schema cronologico tra gli strumenti da banco.",
+                    legalReference: "Linee Guida D.M. 5669/2011"
+                ))
+            }
+        }
+
+        // 8. Prove in lingua straniera con supporto dizionario o tavole
+        if compIds.contains("comp.vocabolario_digitale") || hasPartialMatch(compensatory, keywords: ["dizionario", "vocabolario"]) {
+            if hasForeignLanguageQuestions(in: fullExamText) && !fullExamText.contains("dizionario") && !fullExamText.contains("vocabolario") {
+                notices.append(Notice(
+                    id: "pdp.suggest.foreign-dictionary",
+                    severity: .suggestion,
+                    title: "Strumento consigliato: Dizionario Digitale",
+                    message: "La prova contiene attività in lingua straniera: consenti a \(studentName) la consultazione del dizionario digitale o delle tavole dei verbi.",
+                    legalReference: "D.M. 5669/2011 art. 4"
+                ))
+            }
+        }
+
+        // 9. Rilevamento carico cognitivo elevato del testo di partenza
+        let loadAssessment = CognitiveLoadAnalyzer.assess(text: fullExamText, isExam: true)
+        if loadAssessment.loadLevel == .excessive {
+            notices.append(Notice(
+                id: "pdp.cognitive-load.excessive",
+                severity: .suggestion,
+                title: "Carico cognitivo elevato nel testo della prova",
+                message: "Il testo contiene \(loadAssessment.longSentencesCount) frasi lunghe o costrutti complessi che possono affaticare la lettura di \(studentName). Usa la funzione 'Semplifica il testo' per alleggerire i passaggi critici.",
+                legalReference: "D.I. 182/2020"
+            ))
+        }
+
         return notices
     }
 
@@ -190,4 +228,26 @@ public nonisolated enum PdpCoherenceChecker {
         let range = NSRange(location: 0, length: (text as NSString).length)
         return regex.firstMatch(in: text, options: [], range: range) != nil
     }
+
+    private static func hasHistoryOrDates(in text: String) -> Bool {
+        let historyKeywords = [
+            "secolo", "a.c.", "d.c.", "medioevo", "rinascimento", "risorgimento",
+            "rivoluzione", "trattato di", "costituzione", "guerra mondiale",
+            "cronologico", "dinastia", "impero"
+        ]
+        if historyKeywords.contains(where: { containsWordSequence(text, sequence: $0) }) {
+            return true
+        }
+        return text.range(of: #"\b(1[4-9]\d{2}|20[0-2]\d)\b"#, options: .regularExpression) != nil
+    }
+
+    private static func hasForeignLanguageQuestions(in text: String) -> Bool {
+        let foreignMarkers = [
+            "past simple", "present perfect", "reading comprehension", "fill in the gaps",
+            "translate the following", "completa in inglese", "completa in francese", "completa in spagnolo",
+            "verbes", "grammaire", "vocabulary"
+        ]
+        return foreignMarkers.contains(where: { text.contains($0) })
+    }
 }
+

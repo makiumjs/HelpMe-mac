@@ -6,15 +6,38 @@ public nonisolated struct SentenceReading: Equatable, Sendable {
     public let rareWords: [String]
     public let subordinates: Int
     public let hasPassive: Bool
+    public let hasDoubleNegation: Bool
+    public let simplifications: [WordSimplification]
     public var isTooLong: Bool { wordCount > 20 }
 
-    public var needsWork: Bool { isTooLong || subordinates > 2 || hasPassive || !rareWords.isEmpty }
+    public init(
+        text: String,
+        wordCount: Int,
+        rareWords: [String],
+        subordinates: Int,
+        hasPassive: Bool,
+        hasDoubleNegation: Bool = false,
+        simplifications: [WordSimplification] = []
+    ) {
+        self.text = text
+        self.wordCount = wordCount
+        self.rareWords = rareWords
+        self.subordinates = subordinates
+        self.hasPassive = hasPassive
+        self.hasDoubleNegation = hasDoubleNegation
+        self.simplifications = simplifications
+    }
+
+    public var needsWork: Bool { isTooLong || subordinates > 2 || hasPassive || hasDoubleNegation || !rareWords.isEmpty || !simplifications.isEmpty }
     public var reasons: [String] {
         var reasons: [String] = []
         if isTooLong { reasons.append("lunga \(wordCount) parole") }
         if subordinates > 2 { reasons.append("\(subordinates) subordinate annidate") }
         if hasPassive { reasons.append("forma passiva") }
-        if !rareWords.isEmpty {
+        if hasDoubleNegation { reasons.append("doppia negazione") }
+        if !simplifications.isEmpty {
+            reasons.append("sinonimi: " + simplifications.map { "\($0.complexWord) → \($0.suggestedAlternative)" }.joined(separator: ", "))
+        } else if !rareWords.isEmpty {
             reasons.append("parole difficili: " + rareWords.joined(separator: ", "))
         }
         return reasons
@@ -55,6 +78,7 @@ public nonisolated enum ReadabilityAnalyzer {
 
     static func reading(of sentence: String) -> SentenceReading {
         let words = wordsOf(sentence)
+        let simpls = CognitiveLoadAnalyzer.findSimplifications(in: sentence)
         return SentenceReading(
             text: sentence,
             wordCount: words.count,
@@ -63,7 +87,9 @@ public nonisolated enum ReadabilityAnalyzer {
                 .filter { $0.count >= 5 && !GlossaryExtractor.isCommonItalian($0) }
                 .reduce(into: [String]()) { unique, word in if !unique.contains(word) { unique.append(word) } },
             subordinates: words.filter { subordinatingWords.contains($0.lowercased()) }.count,
-            hasPassive: hasPassive(sentence)
+            hasPassive: hasPassive(sentence),
+            hasDoubleNegation: CognitiveLoadAnalyzer.hasDoubleNegation(sentence),
+            simplifications: simpls
         )
     }
 

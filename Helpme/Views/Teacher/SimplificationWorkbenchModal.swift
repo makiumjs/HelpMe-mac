@@ -135,6 +135,33 @@ public struct SimplificationWorkbenchModal: View {
             TextField("Riscrivila con parole più semplici", text: $rows[index].rewritten, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(2...5)
+            if !rows[index].reading.simplifications.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.caption2)
+                        .foregroundStyle(Color.institutional)
+                    Text("Sostituzione rapida:")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    ForEach(rows[index].reading.simplifications, id: \.complexWord) { s in
+                        Button(action: {
+                            let base = rows[index].rewritten.isEmpty ? rows[index].original : rows[index].rewritten
+                            rows[index].rewritten = base.replacingOccurrences(of: s.complexWord, with: s.suggestedAlternative, options: .caseInsensitive)
+                        }) {
+                            Text("\(s.complexWord) ➔ \(s.suggestedAlternative)")
+                                .font(.system(size: 10, weight: .medium))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.institutional.opacity(0.12))
+                                .foregroundStyle(Color.institutional)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .help("Clicca per sostituire «\(s.complexWord)» con «\(s.suggestedAlternative)»")
+                    }
+                }
+                .padding(.leading, 2)
+            }
             let aiuti = SimplificationDraft.hints(for: rows[index], glossary: glossary)
             if !aiuti.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {

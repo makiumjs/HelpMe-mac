@@ -125,10 +125,18 @@ public nonisolated enum EquipollenteComposer {
         return result.joined(separator: "\n")
     }
     static func guidedSteps(for text: String) -> [String]? {
-        let lower = text.folding(options: [.diacriticInsensitive, .caseInsensitive],
-                                 locale: Locale(identifier: "it_IT"))
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.contains("______") || trimmed.contains("[ ]") || trimmed.contains("( )") {
+            return nil
+        }
 
-        if ["calcola", "determina", "converti", "risolvi"].contains(where: { lower.hasPrefix($0) }) {
+        let clean = stripLeadingNumbering(trimmed)
+        let lower = clean.folding(options: [.diacriticInsensitive, .caseInsensitive],
+                                  locale: Locale(identifier: "it_IT"))
+
+        // 1. Calcoli e problemi operativi
+        if ["calcola", "determina", "converti", "risolvi"].contains(where: { lower.hasPrefix($0) })
+            || (lower.contains("calcola") && (lower.contains("problema") || lower.contains("dato") || lower.contains("area") || lower.contains("perimetro") || lower.contains("velocita") || lower.contains("forza") || lower.contains("massa") || lower.contains("distanza"))) {
             return [
                 "Dati che hai: ______________________________________",
                 "Formula che userai: _________________________________",
@@ -138,10 +146,32 @@ public nonisolated enum EquipollenteComposer {
             ]
         }
 
+        // 2. Confronti e distinzioni strutturate
+        if ["confronta", "metti a confronto", "differenze tra", "distingui tra"].contains(where: { lower.hasPrefix($0) }) {
+            return [
+                "Elementi a confronto: ______________________________",
+                "| Aspetto / Caratteristica | Primo termine | Secondo termine |",
+                "|---|---|---|",
+                "| 1. | | |",
+                "| 2. | | |",
+                "Sintesi finale: ____________________________________"
+            ]
+        }
+
+        // 3. Elenchi ed enumerazioni esplicite
         if let count = requestedCount(in: lower), count >= 2, count <= 6 {
             return (1...count).map { "\($0). _________________________________________" }
         }
         return nil
+    }
+
+    static func stripLeadingNumbering(_ text: String) -> String {
+        var s = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let match = s.range(of: #"^(\d+[\.\)]|[a-zA-Z][\.\)]|quesito\s+\d+[:\-\.]|esercizio\s+\d+[:\-\.])\s*"#,
+                               options: [.regularExpression, .caseInsensitive]) {
+            s.removeSubrange(match)
+        }
+        return s
     }
 
     static func requestedCount(in text: String) -> Int? {

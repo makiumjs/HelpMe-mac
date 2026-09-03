@@ -227,4 +227,43 @@ final class PdpCoherenceTests: XCTestCase {
         XCTAssertEqual(vm.pdpCoherenceNotices.count, 1)
         XCTAssertEqual(vm.pdpCoherenceNotices.first?.id, "pdp.missing-duration")
     }
+
+    func testSuggestsHistoryTimelineWhenDatesPresentAndNoTool() {
+        let testText = """
+        Verifica di Storia
+        Durata: 60 minuti.
+        1. Nel 1789 scoppiò la Rivoluzione Francese.
+        2. Quali furono gli eventi del Risorgimento nel XIX secolo?
+        """
+        let exam = ExamParser.parse(testText)
+
+        let notices = PdpCoherenceChecker.check(
+            exam: exam,
+            studentName: "Mario Rossi",
+            compensatory: ["comp.schemi"],
+            dispensatory: []
+        )
+
+        XCTAssertTrue(notices.contains { $0.id == "pdp.suggest.history-timeline" })
+        XCTAssertEqual(notices.first(where: { $0.id == "pdp.suggest.history-timeline" })?.severity, .suggestion)
+    }
+
+    func testSuggestsForeignDictionaryWhenLanguageTestPresent() {
+        let testText = """
+        English Test
+        Duration: 60 minutes.
+        1. Fill in the gaps with past simple or present perfect.
+        2. Reading comprehension about Victorian London.
+        """
+        let exam = ExamParser.parse(testText)
+
+        let notices = PdpCoherenceChecker.check(
+            exam: exam,
+            studentName: "Mario Rossi",
+            compensatory: ["comp.vocabolario_digitale"],
+            dispensatory: []
+        )
+
+        XCTAssertTrue(notices.contains { $0.id == "pdp.suggest.foreign-dictionary" })
+    }
 }

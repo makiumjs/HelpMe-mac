@@ -134,4 +134,20 @@ final class GuidedStepsTests: XCTestCase {
         XCTAssertNil(EquipollenteComposer.guidedSteps(for: "Perché quella faglia è considerata trasforme?"))
         XCTAssertNil(EquipollenteComposer.guidedSteps(for: "Che cos'è una placca litosferica?"))
     }
+
+    func testCalculationWithLeadingNumberAndContextIsBrokenIntoSteps() {
+        let passi = try! XCTUnwrap(EquipollenteComposer.guidedSteps(for: "1. Dato un rettangolo di base 10 cm, calcola l'area."))
+
+        XCTAssertTrue(passi.contains { $0.hasPrefix("Dati che hai") })
+        XCTAssertTrue(passi.contains { $0.hasPrefix("Formula che userai") })
+        XCTAssertTrue(passi.contains { $0.contains("unità di misura") })
+    }
+
+    func testComparisonQuestionIsScaffoldedIntoTable() {
+        let passi = try! XCTUnwrap(EquipollenteComposer.guidedSteps(for: "Confronta il modello geocentrico e il modello eliocentrico."))
+
+        XCTAssertTrue(passi.contains { $0.contains("Elementi a confronto") })
+        XCTAssertTrue(passi.contains { $0.contains("|---|---|---|") })
+        XCTAssertTrue(passi.contains { $0.contains("Sintesi finale") })
+    }
 }
