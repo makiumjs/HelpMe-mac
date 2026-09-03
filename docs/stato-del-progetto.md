@@ -17,7 +17,7 @@ decisione presa bene si rimette in discussione da capo.
 | Cartella | `~/Progetti/HelpMe/Helpme` | `~/Progetti/HelpMe-Windows` |
 | Remote | `makiumjs/HelpMe-mac` | `makiumjs/HelpMe-windows` |
 | Stack | Swift 6, SwiftUI, SwiftData | C# .NET 8, WinUI 3 |
-| Test | 426 (411 XCTest + 15 Swift Testing) | 379 |
+| Test | 426 (411 XCTest + 15 Swift Testing) | 458 |
 | Sorgente | ~9.500 righe | — |
 | Motore generativo | **rimosso** | **ancora presente** |
 | Permesso di rete | **assente** | presente |
