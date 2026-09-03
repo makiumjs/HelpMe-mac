@@ -113,6 +113,10 @@ public final class AppViewModel {
             return "Questo formato non usa l'IA: si compila dalle misure registrate nella scheda dell'alunno, "
                  + "con le diciture della normativa. Niente esce dal Mac."
         }
+        if selectedFormat.prefersModelWhenAvailable, activeEngine != nil, engineOverride == nil {
+            return "Le frasi le riscrive il modello: è l'unica cosa che l'app non sa fare da sé. "
+                 + "Senza motore le misura e ti dice quali riscrivere."
+        }
         if selectedFormat.localComposition == .fromAnyText, engineOverride == nil {
             switch selectedFormat {
             case .deskCheatSheet:
@@ -141,6 +145,7 @@ public final class AppViewModel {
     public var usesRemoteModel: Bool {
         guard selectedFormat.localComposition == .none
                 || (selectedFormat.localComposition == .fromAnyText && engineOverride != nil)
+                || selectedFormat.prefersModelWhenAvailable
         else { return false }
         return activeEngine == .gemini
     }
@@ -441,7 +446,9 @@ public final class AppViewModel {
             errorMessage = blocked
             return
         }
-        if selectedFormat.localComposition == .fromAnyText, engineOverride == nil {
+        if selectedFormat.localComposition == .fromAnyText,
+           engineOverride == nil,
+           !(selectedFormat.prefersModelWhenAvailable && activeEngine != nil) {
             composeFromText(for: student)
             rememberWork()
             return
@@ -499,6 +506,10 @@ public final class AppViewModel {
         isGenerating = false
     }
     public func applySimplifiedText(_ text: String, rewritten: Int, gulpease: Int) {
+        guard LicenseGate.canGenerate(licenseState) else {
+            errorMessage = LicenseGate.explanation(licenseState)
+            return
+        }
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         generatedContent = text
         selectedFormat = .clearExplanation
@@ -510,6 +521,10 @@ public final class AppViewModel {
         rememberWork()
     }
     public func applyMindmap(_ nodes: [MindmapNode]) {
+        guard LicenseGate.canGenerate(licenseState) else {
+            errorMessage = LicenseGate.explanation(licenseState)
+            return
+        }
         guard !nodes.isEmpty else { return }
         generatedContent = MindmapComposer.compose(nodes)
         selectedFormat = .conceptMap
@@ -518,6 +533,10 @@ public final class AppViewModel {
         rememberWork()
     }
     public func applyQuiz(_ questions: [QuizQuestion]) {
+        guard LicenseGate.canGenerate(licenseState) else {
+            errorMessage = LicenseGate.explanation(licenseState)
+            return
+        }
         guard !questions.isEmpty else { return }
         generatedContent = QuizComposer.compose(questions)
         selectedFormat = .interactiveQuiz

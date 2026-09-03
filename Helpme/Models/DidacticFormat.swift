@@ -40,6 +40,13 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
         case none
     }
 
+    /// Vero solo per la spiegazione semplificata: e' l'unico formato dove un
+    /// modello fa qualcosa che l'app non sa fare, cioe' riscrivere le parole.
+    /// Per gli altri sei la composizione **e' migliore** di un modello, non un
+    /// ripiego: un compositore che dispone i quesiti del docente non puo'
+    /// rispondere alle domande al posto suo ne' sbagliare i calcoli.
+    public var prefersModelWhenAvailable: Bool { self == .clearExplanation }
+
     public var localComposition: LocalComposition {
         switch self {
         case .pdpSummary:       return .always

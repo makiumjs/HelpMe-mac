@@ -1,4 +1,5 @@
 import Testing
+import SwiftData
 @testable import Helpme
 
 /// Rilievi trovati dalla controparte Windows il 1 settembre 2026, su
@@ -82,6 +83,48 @@ struct WindowsFindingsTests {
         #expect(!ExamParser.isTrueFalseMarker("Descrivi il ciclo."))
     }
 
+    // MARK: - Le due decisioni allineate a Windows
+
+    /// Comporre una scheda PDP è produrre materiale nuovo, ed è il prodotto
+    /// che la scuola compra: ora che sei formati su sette non usano il
+    /// modello, lasciarli passare vorrebbe dire che la licenza non protegge
+    /// quasi più niente. I tre pannelli scrivono nel materiale senza passare
+    /// da `generateMaterial`, quindi il controllo va anche lì.
+    @MainActor
+    @Test func unaLicenzaScadutaFermaAncheIPannelli() throws {
+        let container = try ModelContainer(
+            for: StudentProfile.self, GloLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let vm = AppViewModel(modelContext: ModelContext(container))
+        vm.addStudent(StudentProfile(name: "Andrea Pirlo", classInfo: "1ITA"))
+        vm.licenseState = .expired(License(school: "I.I.S.", issuedOn: .distantPast, expiresOn: .distantPast))
+
+        vm.applyQuiz([QuizQuestion(prompt: "Domanda?", options: [
+            QuizOption(text: "A", isCorrect: true, explanation: nil),
+            QuizOption(text: "B", isCorrect: false, explanation: nil)
+        ])])
+        #expect(vm.generatedContent.isEmpty)
+
+        vm.applyMindmap([MindmapNode(title: "Tema")])
+        #expect(vm.generatedContent.isEmpty)
+
+        vm.applySimplifiedText("Testo riscritto.", rewritten: 1, gulpease: 70)
+        #expect(vm.generatedContent.isEmpty)
+        #expect(vm.errorMessage?.contains("scaduta") == true)
+    }
+
+    /// La spiegazione semplificata è l'unico formato dove un modello fa
+    /// qualcosa che l'app non sa fare: riscrivere le parole. Per gli altri sei
+    /// la composizione è migliore, non un ripiego.
+    @Test func soloLaSpiegazionePreferisceIlModello() {
+        #expect(DidacticFormat.clearExplanation.prefersModelWhenAvailable)
+        for formato in DidacticFormat.allCases where formato != .clearExplanation {
+            #expect(!formato.prefersModelWhenAvailable, "\(formato.rawValue)")
+        }
+    }
+
+    /// E siccome ora ci va da sé, la sorveglianza del testo di partenza deve
+    /// scattare anche lì.
     // MARK: - Il documento prodotto
 
     private func foglio(_ testo: String) -> String {
