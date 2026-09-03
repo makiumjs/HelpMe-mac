@@ -8,7 +8,7 @@ public nonisolated enum QuizComposer {
 
         for (index, question) in questions.enumerated() {
             var block = "### Domanda \(index + 1)\n\(question.prompt)\n"
-            for option in question.options {
+            for option in question.options where !option.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 let marker = option.isCorrect ? "[x]" : "[ ]"
                 var row = "- \(marker) \(option.text)"
                 if let explanation = option.explanation?.trimmingCharacters(in: .whitespacesAndNewlines),

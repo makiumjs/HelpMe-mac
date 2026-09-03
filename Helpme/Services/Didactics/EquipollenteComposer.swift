@@ -57,9 +57,10 @@ public nonisolated enum EquipollenteComposer {
 
         parts.append(contentsOf: questionBlocks(input.exam))
         parts.append(grid(for: input.exam))
+        parts.append(orphanWarning(input.exam))
         parts.append(teacherFooter(input))
 
-        return parts.joined(separator: "\n\n")
+        return parts.filter { !$0.isEmpty }.joined(separator: "\n\n")
     }
 
     // MARK: - Le parti
@@ -156,11 +157,28 @@ public nonisolated enum EquipollenteComposer {
     }
 
     static func answersInPlace(_ question: ExamQuestion) -> Bool {
+        answerStructure(in: question) != nil
+    }
+
+    /// La forma su cui si risponde dentro il quesito, se c'è davvero.
+    ///
+    /// «Purché quel posto ci sia»: se la struttura non è arrivata — era
+    /// un'immagine, stava su un allegato — allo studente arriverebbe la
+    /// consegna seguita dal nulla, senza posto dove scrivere.
+    static func answerStructure(in question: ExamQuestion) -> String? {
         let text = question.text
-        return text.contains("______")
-            || text.contains("\n|")
-            || text.contains(" V  F")
-            || text.localizedCaseInsensitiveContains("vere o false")
+        if text.contains("______") { return "completamento" }
+        if text.contains("\n|") { return "tabella" }
+        if text.contains(" V  F") || text.contains("\nV") { return "vero/falso" }
+        return nil
+    }
+
+    /// Vero quando il quesito annuncia una struttura che poi non c'è.
+    static func announcesMissingStructure(_ question: ExamQuestion) -> Bool {
+        guard answerStructure(in: question) == nil else { return false }
+        let text = question.text.lowercased()
+        return text.contains("vere o false") || text.contains("vero o falso")
+            || text.contains("completa la tabella") || text.contains("completa lo schema")
     }
 
     private static func answerSpace(lines: Int) -> String {
@@ -214,12 +232,12 @@ public nonisolated enum EquipollenteComposer {
         }
 
         let total = points.values.reduce(0, +)
-        if total > 0 { rows.append("| | **Totale** | **\(total)** | |") }
+        if total > 0 { rows.append("| | **Totale** | **\(italianNumber(total))** | |") }
 
         var grid = "### Griglia di valutazione — Consiglio di Classe\n\n" + rows.joined(separator: "\n")
 
         if !proposed.isEmpty {
-            let quali = proposed.sorted { ($0 as NSString).intValue < ($1 as NSString).intValue }.joined(separator: ", ")
+            let quali = italianList(proposed.sorted { ($0 as NSString).intValue < ($1 as NSString).intValue })
             grid += "\n\n*I punteggi in corsivo — quesiti \(quali) — non erano indicati nella prova della classe: "
                  + "sono una proposta in parti uguali, da confermare.*"
         }
@@ -232,6 +250,13 @@ public nonisolated enum EquipollenteComposer {
             .trimmingCharacters(in: CharacterSet(charactersIn: "\"«»' "))
 
         if !question.subItems.isEmpty { return "Applicazione: imposta e svolge il procedimento" }
+
+        switch answerStructure(in: question) {
+        case "tabella": return "Applicazione: organizza i dati in tabella"
+        case "vero/falso": return "Riconoscimento: distingue vero e falso"
+        case "completamento": return "Completamento: inserisce i termini mancanti"
+        default: break
+        }
 
         for (openers, indicator) in indicatorRules where openers.contains(where: { text.hasPrefix($0) }) {
             return indicator
@@ -263,6 +288,25 @@ public nonisolated enum EquipollenteComposer {
         (["descrivi", "illustra", "spiega", "esponi"], "Conoscenza: espone i contenuti richiesti"),
         (["qual e", "qual'e", "quale e", "che cosa", "cosa "], "Conoscenza: definisce")
     ]
+
+    /// Non si inventano le affermazioni mancanti — sarebbe produrre contenuto
+    /// che il docente non ha scritto. Gli si danno le righe e glielo si dice.
+    private static func orphanWarning(_ exam: ParsedExam) -> String {
+        let orphans = exam.questions.filter(announcesMissingStructure).map(\.number)
+        guard !orphans.isEmpty else { return "" }
+
+        return "*\(orphans.count == 1 ? "Il quesito" : "I quesiti") \(italianList(orphans)) "
+             + "\(orphans.count == 1 ? "annuncia" : "annunciano") affermazioni o una tabella che nel testo "
+             + "di partenza non c'erano: al loro posto sono state lasciate righe per scrivere.*"
+    }
+
+    /// "2, 3 e 5", non "2, 3, 5": l'ultimo si lega con «e».
+    static func italianNumber(_ value: Int) -> String { String(value) }
+
+    static func italianList(_ items: [String]) -> String {
+        guard items.count > 1 else { return items.first ?? "" }
+        return items.dropLast().joined(separator: ", ") + " e " + (items.last ?? "")
+    }
 
     private static func teacherFooter(_ input: Input) -> String {
         let measures = (input.compensatory + input.dispensatory)

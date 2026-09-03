@@ -5,7 +5,11 @@ public struct MindmapBuilderModal: View {
     @State private var rows: [MindmapDraftRow]
     public init(appViewModel: AppViewModel) {
         self.appViewModel = appViewModel
-        let existing = MindmapParser.parse(appViewModel.generatedContent)
+        // Si riapre solo su un markup che e' davvero una mappa: con una
+        // Scheda PDP nell'editor, il parser ne prenderebbe i titoli come nodi.
+        let existing = appViewModel.selectedFormat == .conceptMap
+            ? MindmapParser.parse(appViewModel.generatedContent)
+            : []
         _rows = State(initialValue: existing.isEmpty
             ? [MindmapDraftRow()]
             : MindmapDraft.rows(from: existing))
