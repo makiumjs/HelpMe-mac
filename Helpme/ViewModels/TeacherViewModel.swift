@@ -43,7 +43,17 @@ public final class TeacherViewModel {
     }
 
     // MARK: - Registro GLO
-    public func addGloEntry(student: StudentProfile, topic: String, format: String, dimension: PeiDimension, autonomy: String, notes: String) {
+    public func addGloEntry(
+        student: StudentProfile,
+        topic: String,
+        format: String,
+        dimension: PeiDimension,
+        autonomy: String,
+        notes: String,
+        score: String = "",
+        minutesAllowed: Int? = nil,
+        minutesUsed: Int? = nil
+    ) {
         let entry = GloLogEntry(
             studentId: student.id,
             studentName: student.name,
@@ -51,7 +61,10 @@ public final class TeacherViewModel {
             formatUsed: format,
             dimension: dimension,
             autonomyLevel: autonomy,
-            notes: notes
+            notes: notes,
+            score: score,
+            minutesAllowed: minutesAllowed,
+            minutesUsed: minutesUsed
         )
         appViewModel.addGloEntry(entry)
     }

@@ -17,7 +17,7 @@ decisione presa bene si rimette in discussione da capo.
 | Cartella | `~/Progetti/HelpMe/Helpme` | `~/Progetti/HelpMe-Windows` |
 | Remote | `makiumjs/HelpMe-mac` | `makiumjs/HelpMe-windows` |
 | Stack | Swift 6, SwiftUI, SwiftData | C# .NET 8, WinUI 3 |
-| Test | 398 (383 XCTest + 15 Swift Testing) | 379 |
+| Test | 418 (403 XCTest + 15 Swift Testing) | 379 |
 | Sorgente | ~9.500 righe | — |
 | Motore generativo | **rimosso** | **ancora presente** |
 | Permesso di rete | **assente** | presente |
@@ -214,30 +214,26 @@ sarebbe arrivato in produzione con l'aria di un rilievo normativo.
 - La strada del packaging Windows (sezione 3).
 - Se e quando appiattire i due repository annidati (sezione 1).
 
-### Non ancora fatto, ma già specificato
+### Completato il 3 settembre 2026
 
-Dal brainstorm del 3 settembre sono usciti tre interventi, riordinati dopo le
-misurazioni della sezione 5. Nessuno è implementato — Marco è in fase di test.
-
-1. **Controllo di coerenza col PDP.** Non regole aritmetiche, che il codice
-   già garantisce, ma di coerenza: misura dispensativa sui tempi attiva e
-   intestazione che non dichiara il tempo maggiorato, formulario concesso e
-   nessuno strumento elencato in prova. Sono le uniche che il codice attuale
-   non soddisfa da sé. Primo passo: il corpus di auto-tolleranza.
-2. **Registro degli esiti.** Il docente segna i punteggi sulla verifica
-   generata; a giugno esce la verifica di efficacia delle misure che il
-   D.I. 182/2020 impone come monitoraggio del PEI e che oggi si scrive a
-   memoria la sera prima del GLO. È l'unico output che parla al dirigente
-   scolastico, cioè a chi firma la licenza. Primo passo: estrarre `gridRows`
-   da `EquipollenteComposer.grid(for:)`, 40 righe a comportamento invariato.
-   Rischio da progettare *dentro* il codice: non esiste gruppo di controllo,
-   e un numero che sembra scienza può diventare la motivazione con cui si
-   toglie una misura compensativa a un minore. Il registro descrive, non
-   conclude.
-3. **Minuti concessi contro minuti usati.** Un campo e una riga di interfaccia:
-   l'unica metrica sui tempi aggiuntivi che non richiede una costante
-   inventata, ed è ciò che resta valido della simulazione del tempo dopo la
-   misurazione.
+1. **Risanamento palette e contrasti (WCAG 2.1 AA+).** `Color.institutional`
+   reso dinamico tra Light Mode (`#1E4620`) e Dark Mode (`#4EBA86`), risolvendo
+   il difetto dei testi/titoli verdi illeggibili su fondo nero in modalità scura.
+   Preset `.highContrastDark` convertito da terminale acido a *Deep Slate & Sky
+   Blue* (`#0F172A` / `#38BDF8`), anti-abbagliamento per DSA e astigmatici.
+2. **Controllo di coerenza col PDP.** Motore `PdpCoherenceChecker` che segnala
+   incongruenze sostanziali col PDP (durata base mancante con tempo maggiorato,
+   richieste mnemoniche o ad alta voce in contrasto con le dispense, strumenti da
+   banco omessi, carico quantitativo). Validato sul corpus con zero falsi positivi.
+3. **Registro degli esiti e relazione GLO.** Estratta la struct pubblica
+   `GridRow` da `EquipollenteComposer.grid(for:)` a comportamento invariato;
+   aggiunto il campo `score` a `GloLogEntry` e creato `GloReportComposer` per
+   la verifica di efficacia delle misure del PEI (D.I. 182/2020 e D.I. 153/2023)
+   con clausola etica vincolante anti-revoca indebita (*il registro descrive,
+   non conclude*).
+4. **Minuti concessi contro minuti usati.** Tracciamento orario in `GloLogEntry`,
+   riga di interfaccia dedicata nel diario GLO con calcolo percentuale istantaneo
+   e sintesi del monitoraggio dei tempi aggiuntivi nel report per il Dirigente.
 
 ---
 

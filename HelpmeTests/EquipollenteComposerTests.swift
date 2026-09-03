@@ -92,6 +92,23 @@ final class EquipollenteComposerTests: XCTestCase {
         XCTAssertTrue(foglio.contains("**Totale**"))
     }
 
+    func testGridRowsExtractsStructuredDataMatchingTheTable() {
+        let esame = ExamParser.parse("""
+        Verifica di Scienze
+        1. Che cos'è una cellula? (punti 4)
+        2. Spiega la fotosintesi. (punti 6)
+        """)
+
+        let rows = EquipollenteComposer.gridRows(for: esame)
+        XCTAssertEqual(rows.count, 2)
+        XCTAssertEqual(rows[0].questionNumber, "1")
+        XCTAssertEqual(rows[0].pointsExpected, 4)
+        XCTAssertFalse(rows[0].isProposed)
+        XCTAssertEqual(rows[1].questionNumber, "2")
+        XCTAssertEqual(rows[1].pointsExpected, 6)
+        XCTAssertFalse(rows[1].isProposed)
+    }
+
     func testThereIsRoomToWriteAndMoreWhereTheQuestionIsWorthMore() {
         let foglio = compose()
         XCTAssertTrue(foglio.contains("______"), "Serve lo spazio per rispondere.")

@@ -65,7 +65,7 @@ public enum ColorThemePreset: String, CaseIterable, Codable, Sendable {
         switch self {
         case .defaultTheme: return "Standard — verde foresta"
         case .softWarm: return "Carta calda — anti-riflesso"
-        case .highContrastDark: return "Alto contrasto scuro"
+        case .highContrastDark: return "Alto contrasto scuro — ardesia e blu"
         case .pastelCalm: return "Pastello calmante — lavanda e salvia"
         }
     }
@@ -74,7 +74,7 @@ public enum ColorThemePreset: String, CaseIterable, Codable, Sendable {
         switch self {
         case .defaultTheme:      return Color(hex: 0xF8FAF9)
         case .softWarm:          return Color(hex: 0xFAF8F2)
-        case .highContrastDark:  return Color(hex: 0x121413)
+        case .highContrastDark:  return Color(hex: 0x0F172A)
         case .pastelCalm:        return Color(hex: 0xF3F4F9)
         }
     }
@@ -83,7 +83,7 @@ public enum ColorThemePreset: String, CaseIterable, Codable, Sendable {
         switch self {
         case .defaultTheme:      return Color(hex: 0x1A2E22)
         case .softWarm:          return Color(hex: 0x2D261E)
-        case .highContrastDark:  return Color(hex: 0xF4F7F5)
+        case .highContrastDark:  return Color(hex: 0xF1F5F9)
         case .pastelCalm:        return Color(hex: 0x212338)
         }
     }
@@ -92,7 +92,7 @@ public enum ColorThemePreset: String, CaseIterable, Codable, Sendable {
         switch self {
         case .defaultTheme:      return Color(hex: 0x1E4620)
         case .softWarm:          return Color(hex: 0x8C5E24)
-        case .highContrastDark:  return Color(hex: 0x4ADE80)
+        case .highContrastDark:  return Color(hex: 0x38BDF8)
         case .pastelCalm:        return Color(hex: 0x5C6AC4)
         }
     }
@@ -101,7 +101,7 @@ public enum ColorThemePreset: String, CaseIterable, Codable, Sendable {
         switch self {
         case .defaultTheme:      return Color(hex: 0x0D5A1F)
         case .softWarm:          return Color(hex: 0x8C4005)
-        case .highContrastDark:  return Color(hex: 0x59F275)
+        case .highContrastDark:  return Color(hex: 0xFBBF24)
         case .pastelCalm:        return Color(hex: 0x4059D9)
         }
     }
@@ -110,7 +110,7 @@ public enum ColorThemePreset: String, CaseIterable, Codable, Sendable {
         switch self {
         case .defaultTheme:      return Color(hex: 0xD8F0DC)
         case .softWarm:          return Color(hex: 0xF7E6C8)
-        case .highContrastDark:  return Color(hex: 0x25382A)
+        case .highContrastDark:  return Color(hex: 0x1E293B)
         case .pastelCalm:        return Color(hex: 0xDDE1F7)
         }
     }
@@ -123,7 +123,7 @@ public enum ColorThemePreset: String, CaseIterable, Codable, Sendable {
         switch self {
         case .defaultTheme:      return (Color(hex: 0x1A2E22), Color(hex: 0x1462A8))
         case .softWarm:          return (Color(hex: 0x2D261E), Color(hex: 0x9B3B10))
-        case .highContrastDark:  return (Color(hex: 0xF4F7F5), Color(hex: 0x62D2F5))
+        case .highContrastDark:  return (Color(hex: 0xF1F5F9), Color(hex: 0x38BDF8))
         case .pastelCalm:        return (Color(hex: 0x212338), Color(hex: 0x8A4BAF))
         }
     }

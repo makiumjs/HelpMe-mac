@@ -52,5 +52,4 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
         case .conceptMap, .interactiveQuiz: return .builtByTeacher
         }
     }
-    public var isComposedLocally: Bool { localComposition == .always }
 }

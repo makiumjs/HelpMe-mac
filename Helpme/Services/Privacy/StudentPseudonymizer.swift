@@ -1,6 +1,5 @@
 import Foundation
 nonisolated public enum StudentPseudonymizer {
-    public static let placeholder = "[ALUNNO]"
     private static let clinicalTerms: [String] = [
         "dsa", "dislessi", "discalculi", "disgrafi", "disortografi",
         "adhd", "autism", "asperger", "disprassi", "afasi",
@@ -83,18 +82,6 @@ nonisolated public enum StudentPseudonymizer {
         return clinicalTerms.filter { haystack.contains(" " + normalizeForMatching($0)) }
     }
 
-    /// Parole di almeno tre lettere: un cognome come "Re" scatterebbe a ogni
-    /// riga, e un avviso che scatta sempre non lo legge piu' nessuno.
-    public static func containsStudentName(_ text: String, name: String) -> Bool {
-        let haystack = " " + normalizeForMatching(text) + " "
-        let parts = normalizeForMatching(name)
-            .components(separatedBy: " ")
-            .filter { $0.count >= 3 }
-
-        guard !parts.isEmpty else { return false }
-        return parts.contains { haystack.contains(" " + $0 + " ") }
-    }
-
     private static func normalizeForMatching(_ text: String) -> String {
         let flattened = text.lowercased().map { character -> Character in
             character.isLetter || character.isNumber ? character : " "
@@ -103,27 +90,5 @@ nonisolated public enum StudentPseudonymizer {
             .components(separatedBy: " ")
             .filter { !$0.isEmpty }
             .joined(separator: " ")
-    }
-    public static func promptProfile(for student: StudentProfile) -> String {
-        let didacticNotes = filterClinicalReferences(from: student.notes)
-        let notesLine = didacticNotes.isEmpty
-            ? "- Osservazioni didattiche: non specificate."
-            : "- Osservazioni didattiche: \(didacticNotes)."
-
-        return """
-        DATI ALUNNO (anonimizzati — riferisciti allo studente con il segnaposto \(placeholder)):
-        - Riferimento: \(placeholder)
-        - Livello scolastico: \(generalizeClass(student.classInfo))
-        - Tipologia percorso: \(student.programType.localizedTitle) (\(student.programType.legalReference))
-        - Interesse per analogie ed esempi: \(student.interest)
-        \(notesLine)
-        - Misure compensative attive: \(student.compensatoryMeasures.joined(separator: ", "))
-        - Misure dispensative: \(student.dispensatoryMeasures.joined(separator: ", "))
-        """
-    }
-    public static func restoreIdentity(in text: String, name: String) -> String {
-        let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanName.isEmpty else { return text }
-        return text.replacingOccurrences(of: placeholder, with: cleanName)
     }
 }

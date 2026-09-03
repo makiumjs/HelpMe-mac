@@ -220,22 +220,49 @@ public nonisolated enum EquipollenteComposer {
         return (points, Set(uncovered))
     }
 
-    private static func grid(for exam: ParsedExam) -> String {
-        var rows = ["| Quesito | Indicatore | Punti previsti | Punti assegnati |",
-                    "|---|---|---|---|"]
+    public struct GridRow: Equatable, Sendable {
+        public let questionNumber: String
+        public let indicator: String
+        public let pointsExpected: Int
+        public let isProposed: Bool
 
+        public init(questionNumber: String, indicator: String, pointsExpected: Int, isProposed: Bool) {
+            self.questionNumber = questionNumber
+            self.indicator = indicator
+            self.pointsExpected = pointsExpected
+            self.isProposed = isProposed
+        }
+    }
+
+    public static func gridRows(for exam: ParsedExam) -> [GridRow] {
         let (points, proposed) = pointsByQuestion(exam)
-        for question in exam.questions {
-            let value = points[question.number].map(String.init) ?? ""
-            let cell = proposed.contains(question.number) ? "*\(value)*" : value
-            rows.append("| \(question.number) | \(indicator(for: question)) | \(cell) | |")
+        return exam.questions.map { question in
+            GridRow(
+                questionNumber: question.number,
+                indicator: indicator(for: question),
+                pointsExpected: points[question.number] ?? 0,
+                isProposed: proposed.contains(question.number)
+            )
+        }
+    }
+
+    private static func grid(for exam: ParsedExam) -> String {
+        var tableLines = ["| Quesito | Indicatore | Punti previsti | Punti assegnati |",
+                          "|---|---|---|---|"]
+
+        let rows = gridRows(for: exam)
+        for row in rows {
+            let value = row.pointsExpected > 0 ? String(row.pointsExpected) : ""
+            let cell = row.isProposed ? "*\(value)*" : value
+            tableLines.append("| \(row.questionNumber) | \(row.indicator) | \(cell) | |")
         }
 
-        let total = points.values.reduce(0, +)
-        if total > 0 { rows.append("| | **Totale** | **\(italianNumber(total))** | |") }
+        let total = rows.map(\.pointsExpected).reduce(0, +)
+        if total > 0 { tableLines.append("| | **Totale** | **\(italianNumber(total))** | |") }
 
-        var grid = "### Griglia di valutazione — Consiglio di Classe\n\n" + rows.joined(separator: "\n")
+        var grid = "### Griglia di valutazione — Consiglio di Classe\n\n" + tableLines.joined(separator: "\n")
 
+        let proposed = rows.filter(\.isProposed).map(\.questionNumber)
         if !proposed.isEmpty {
             let quali = italianList(proposed.sorted { ($0 as NSString).intValue < ($1 as NSString).intValue })
             grid += "\n\n*I punteggi in corsivo — quesiti \(quali) — non erano indicati nella prova della classe: "

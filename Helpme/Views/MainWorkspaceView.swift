@@ -178,7 +178,43 @@ public struct MainWorkspaceView: View {
                         .foregroundStyle(appViewModel.canGenerate ? Color.secondary : Color.orange)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                
+
+                if !appViewModel.pdpCoherenceNotices.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(appViewModel.pdpCoherenceNotices) { notice in
+                            HStack(alignment: .top, spacing: 7) {
+                                Image(systemName: notice.severity == .warning ? "exclamationmark.triangle.fill" : "lightbulb.fill")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(notice.severity == .warning ? Color.orange : Color.institutional)
+                                    .padding(.top, 1)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack {
+                                        Text(notice.title)
+                                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                                            .foregroundStyle(notice.severity == .warning ? Color.orange : Color.primary)
+                                        Spacer()
+                                        if let ref = notice.legalReference {
+                                            Text(ref)
+                                                .font(.system(size: 9.5))
+                                                .foregroundStyle(.tertiary)
+                                        }
+                                    }
+                                    Text(notice.message)
+                                        .font(.system(size: 10.5))
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                            .padding(8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background((notice.severity == .warning ? Color.orange : Color.institutional).opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        }
+                    }
+                    .padding(.top, 2)
+                }
+
                 if let err = appViewModel.errorMessage {
                     Label(err, systemImage: "exclamationmark.triangle.fill")
                         .font(.system(size: 11, weight: .medium))

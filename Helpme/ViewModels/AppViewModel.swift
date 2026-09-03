@@ -111,6 +111,20 @@ public final class AppViewModel {
     static let editorFillLimit = 50_000
     public var sourceText: String = ""
 
+    // MARK: - Coerenza PDP
+    public var pdpCoherenceNotices: [PdpCoherenceChecker.Notice] {
+        guard let student = selectedStudent, selectedFormat == .equipollenteExam else { return [] }
+        guard !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [] }
+        let exam = ExamParser.parse(sourceText)
+        guard !exam.isEmpty else { return [] }
+        return PdpCoherenceChecker.check(
+            exam: exam,
+            studentName: student.name,
+            compensatory: student.compensatoryMeasures,
+            dispensatory: student.dispensatoryMeasures
+        )
+    }
+
     public var generatedContent: String = ""
     public var isGenerating: Bool = false
     public var errorMessage: String? = nil
