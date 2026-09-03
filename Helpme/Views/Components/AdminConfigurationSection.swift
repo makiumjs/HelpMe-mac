@@ -3,14 +3,13 @@ struct AdminConfigurationSection: View {
     @Bindable var appViewModel: AppViewModel
     @State private var passwordField: String = ""
     @State private var confirmField: String = ""
-    @State private var newKeyField: String = ""
     @State private var licenseField: String = ""
     @State private var errorMessage: String?
 
     private var lock: AdminLock { appViewModel.adminLock }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Configurazione IA", systemImage: "lock.shield.fill")
+            Label("Licenza della scuola", systemImage: "lock.shield.fill")
                 .font(.caption)
                 .bold()
             licenseStatus
@@ -42,7 +41,6 @@ struct AdminConfigurationSection: View {
     }
     private var licenseEntry: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Divider()
             Text("Codice licenza")
                 .font(.caption2)
                 .bold()
@@ -60,7 +58,8 @@ struct AdminConfigurationSection: View {
                     errorMessage = state.summary
                 }
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
+            .tint(Color.institutional)
             .disabled(licenseField.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
@@ -68,7 +67,7 @@ struct AdminConfigurationSection: View {
     // MARK: - Primo avvio: nessuna password impostata su questa macchina
     private var firstRunSetup: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Imposta una password amministratore per questa macchina. Servirà per configurare o cambiare la chiave IA.")
+            Text("Imposta una password amministratore per questa macchina. Servirà per inserire o cambiare il codice licenza.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
 
@@ -106,15 +105,6 @@ struct AdminConfigurationSection: View {
 
     private var lockedPanel: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let hint = appViewModel.geminiApiKeyHint {
-                Text("Chiave configurata: \(hint)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text("Nessuna chiave configurata.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
             HStack {
                 SecureField("Password amministratore", text: $passwordField)
                     .textFieldStyle(.roundedBorder)
@@ -142,52 +132,21 @@ struct AdminConfigurationSection: View {
         }
     }
 
-    // MARK: - Sbloccato: si può leggere l'indizio e cambiare la chiave
+    // MARK: - Sbloccato: si può inserire o sostituire la licenza
 
     private var unlockedPanel: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Label("Sbloccato", systemImage: "lock.open.fill")
                 .font(.caption2)
                 .foregroundStyle(.green)
-            if let hint = appViewModel.geminiApiKeyHint {
-                Text("Chiave attuale: \(hint)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            SecureField("Nuova API Key Gemini (lascia vuoto per non cambiare)", text: $newKeyField)
-                .textFieldStyle(.roundedBorder)
+            licenseEntry
             HStack {
-                Button("Salva chiave") {
-                    do {
-                        try appViewModel.setGeminiApiKey(newKeyField)
-                        newKeyField = ""
-                        errorMessage = nil
-                    } catch {
-                        errorMessage = error.localizedDescription
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Color.institutional)
-                .disabled(newKeyField.trimmingCharacters(in: .whitespaces).isEmpty)
-
-                if appViewModel.hasGeminiApiKey {
-                    Button("Rimuovi chiave", role: .destructive) {
-                        do {
-                            try appViewModel.setGeminiApiKey("")
-                            errorMessage = nil
-                        } catch {
-                            errorMessage = error.localizedDescription
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                }
                 Spacer()
                 Button("Blocca") {
                     lock.lock()
                 }
                 .buttonStyle(.bordered)
             }
-            licenseEntry
             if let errorMessage {
                 Text(errorMessage)
                     .font(.caption2)

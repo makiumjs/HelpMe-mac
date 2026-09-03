@@ -117,7 +117,6 @@ final class QuizComposerTests: XCTestCase {
             for: StudentProfile.self, GloLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let vm = AppViewModel(modelContext: ModelContext(container))
-        vm.systemModelStatus = .appleIntelligenceOff
 
         vm.applyQuiz([domanda])
 

@@ -113,18 +113,19 @@ struct WindowsFindingsTests {
         #expect(vm.errorMessage?.contains("scaduta") == true)
     }
 
-    /// La spiegazione semplificata è l'unico formato dove un modello fa
-    /// qualcosa che l'app non sa fare: riscrivere le parole. Per gli altri sei
-    /// la composizione è migliore, non un ripiego.
-    @Test func soloLaSpiegazionePreferisceIlModello() {
-        #expect(DidacticFormat.clearExplanation.prefersModelWhenAvailable)
-        for formato in DidacticFormat.allCases where formato != .clearExplanation {
-            #expect(!formato.prefersModelWhenAvailable, "\(formato.rawValue)")
+    /// Nessun formato dipende da un modello: sei si compongono dal testo o
+    /// dalla scheda dell'alunno, due li scrive il docente negli editor.
+    @Test func ogniFormatoHaUnaStradaSenzaModello() {
+        for formato in DidacticFormat.allCases {
+            switch formato.localComposition {
+            case .always, .fromStructuredText, .fromAnyText:
+                continue
+            case .builtByTeacher:
+                #expect(formato == .conceptMap || formato == .interactiveQuiz, "\(formato.rawValue)")
+            }
         }
     }
 
-    /// E siccome ora ci va da sé, la sorveglianza del testo di partenza deve
-    /// scattare anche lì.
     // MARK: - Il documento prodotto
 
     private func foglio(_ testo: String) -> String {

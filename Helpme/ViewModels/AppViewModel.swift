@@ -18,7 +18,6 @@ public final class AppViewModel {
             guard selectedStudent !== oldValue else { return }
             if let previous = oldValue { store(into: previous) }
             restoreWork(of: selectedStudent)
-            sourceTextReviewed = false
         }
     }
     public func rememberWork() {
@@ -47,50 +46,11 @@ public final class AppViewModel {
         didSet { if accessibilitySettings != oldValue { SettingsStore.save(accessibilitySettings) } }
     }
 
-    // MARK: - Configurazione IA
+    // MARK: - Configurazione riservata
     public let adminLock = AdminLock()
-    public private(set) var geminiApiKey: String
-    public var hasGeminiApiKey: Bool {
-        !geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-    public var geminiApiKeyHint: String? {
-        let trimmed = geminiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count >= 4 else { return nil }
-        return "••••" + trimmed.suffix(4)
-    }
-    public enum ConfigurationError: LocalizedError {
-        case locked
-        case storageFailure
 
-        public var errorDescription: String? {
-            switch self {
-            case .locked:
-                return "La configurazione dell'IA è riservata all'amministratore."
-            case .storageFailure:
-                return "Impossibile salvare la chiave nel portachiavi di sistema. La configurazione non è stata applicata."
-            }
-        }
-    }
-    public func setGeminiApiKey(_ key: String) throws {
-        guard adminLock.isUnlocked else { throw ConfigurationError.locked }
-        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard KeychainStore.save(trimmed, for: .geminiApiKey) else {
-            throw ConfigurationError.storageFailure
-        }
-        geminiApiKey = trimmed
-    }
     public var selectedFormat: DidacticFormat {
         didSet { SettingsStore.save(lastFormat: selectedFormat) }
-    }
-    public var engineOverride: AIEngine? = nil
-    public var systemModelStatus: SystemModelAvailability.Status = SystemModelAvailability.status
-    public var engineSelector: EngineSelector {
-        EngineSelector(hasApiKey: hasGeminiApiKey, systemStatus: systemModelStatus)
-    }
-    public var activeEngine: AIEngine? {
-        let selector = engineSelector
-        if let engineOverride, selector.usableEngines.contains(engineOverride) { return engineOverride }
-        return selector.recommended(for: selectedFormat)
     }
     // MARK: - Licenza
 
@@ -107,117 +67,79 @@ public final class AppViewModel {
         licenseState = state
         return state
     }
-    public var engineRationale: String? {
+    public var formatRationale: String? {
         if let licenseProblem = LicenseGate.explanation(licenseState) { return licenseProblem }
-        if selectedFormat.isComposedLocally {
-            return "Questo formato non usa l'IA: si compila dalle misure registrate nella scheda dell'alunno, "
-                 + "con le diciture della normativa. Niente esce dal Mac."
-        }
-        if selectedFormat.prefersModelWhenAvailable, activeEngine != nil, engineOverride == nil {
-            return "Le frasi le riscrive il modello: è l'unica cosa che l'app non sa fare da sé. "
-                 + "Senza motore le misura e ti dice quali riscrivere."
-        }
-        if selectedFormat.localComposition == .fromAnyText, engineOverride == nil {
-            switch selectedFormat {
-            case .deskCheatSheet:
-                return "Cerca formule, definizioni e dati nel testo, senza IA. Poi taglia: "
-                     + "un formulario da banco vale se è corto."
-            case .clearExplanation:
-                return "Senza IA rende il testo leggibile e misura dov'è difficile, "
-                     + "ma non riscrive le frasi: quello richiede di sapere quali parole "
-                     + "l'alunno ha già. Con una API key le riscrive il modello."
-            default:
-                return "Estrae i termini dal testo senza IA, con la frase in cui compaiono. "
-                     + "Le definizioni le scrivi tu; per farle scrivere all'IA, scegli un motore a mano."
-            }
-        }
-        if selectedFormat.localComposition == .fromStructuredText {
-            return "Incolla la verifica della classe con i quesiti numerati: l'app la ricostruisce senza IA — "
+        switch selectedFormat {
+        case .pdpSummary:
+            return "Si compila dalle misure registrate nella scheda dell'alunno, "
+                 + "con le diciture della normativa."
+        case .equipollenteExam:
+            return "Incolla la verifica della classe con i quesiti numerati: l'app la ricostruisce — "
                  + "tempo maggiorato, strumenti concessi, spazio per scrivere e griglia. "
                  + "La scomposizione guidata la aggiungi tu."
+        case .deskCheatSheet:
+            return "Cerca formule, definizioni e dati nel testo. Poi taglia: "
+                 + "un formulario da banco vale se è corto."
+        case .clearExplanation:
+            return "Rende il testo leggibile e misura dov'è difficile con l'indice Gulpease. "
+                 + "Le frasi da riscrivere te le indica: riscriverle resta a te, "
+                 + "perché richiede di sapere quali parole l'alunno ha già."
+        case .glossary:
+            return "Estrae i termini dal testo, con la frase in cui compaiono. "
+                 + "Le definizioni le scrivi tu."
+        case .conceptMap:
+            return "La mappa si costruisce, non si deduce da un testo: aprila con «Costruisci mappa» "
+                 + "nella colonna a sinistra."
+        case .interactiveQuiz:
+            return "Il quiz si scrive: aprilo con «Scrivi il quiz» nella colonna a sinistra."
         }
-        guard let engine = activeEngine else { return engineSelector.blockingMessage }
-        return engineSelector.rationale(for: selectedFormat, engine: engine)
-    }
-    /// Vero quando la generazione manderebbe il testo fuori dal Mac. I
-    /// formati che si compongono in locale non lo fanno, e avvisare lì
-    /// insegnerebbe solo a ignorare l'avviso.
-    public var usesRemoteModel: Bool {
-        guard selectedFormat.localComposition == .none
-                || (selectedFormat.localComposition == .fromAnyText && engineOverride != nil)
-                || selectedFormat.prefersModelWhenAvailable
-        else { return false }
-        return activeEngine == .gemini
     }
 
     public var canGenerate: Bool {
         guard LicenseGate.canGenerate(licenseState) else { return false }
-        if activeEngine != nil { return true }
         switch selectedFormat.localComposition {
         case .always:
             return true
         case .fromStructuredText, .fromAnyText:
             return !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .none:
+        case .builtByTeacher:
             return false
         }
     }
 
     // MARK: - Editor
     static let editorFillLimit = 50_000
-    public var sourceText: String = "" {
-        didSet { if sourceText != oldValue { sourceTextReviewed = false } }
-    }
+    public var sourceText: String = ""
 
-    /// Il docente ha guardato l'avviso e ha confermato che è materiale
-    /// didattico. Decade a ogni modifica del testo e a ogni cambio di alunno:
-    /// una conferma data su un altro testo non vale su questo.
-    public private(set) var sourceTextReviewed = false
-
-    public var sourceTextScreening: SourceTextScreening {
-        SourceTextScreening.of(
-            sourceText: sourceText,
-            student: selectedStudent,
-            indexedExcerpts: indexedDocuments.isEmpty ? [] : semanticSearch.allExcerpts()
-        )
-    }
-
-    public func confirmSourceTextReviewed() {
-        sourceTextReviewed = true
-        errorMessage = nil
-    }
     public var generatedContent: String = ""
     public var isGenerating: Bool = false
     public var errorMessage: String? = nil
     public var statusMessage: String? = nil
 
-    // MARK: - Indice documentale (RAG)
-    public private(set) var indexedDocuments: [IndexedDocument] = []
     public private(set) var isImportingDocuments: Bool = false
-    public var indexedChunkCount: Int { indexedDocuments.reduce(0) { $0 + $1.chunkCount } }
     public var hasNoStudents: Bool { students.isEmpty }
 
     // MARK: - Servizi
     public let audioReader: AudioReaderService
-    public let semanticSearch: SemanticSearchService
+    public let documentReader: DocumentIndexer
     public let docxExporter: DocxExportService
     public let dictation: SpeechDictationService
     // MARK: - Inizializzazione
     public init(
         modelContext: ModelContext,
         audioReader: AudioReaderService? = nil,
-        semanticSearch: SemanticSearchService? = nil,
+        documentReader: DocumentIndexer? = nil,
         docxExporter: DocxExportService? = nil
     ) {
         self.modelContext = modelContext
         self.audioReader = audioReader ?? AudioReaderService()
-        self.semanticSearch = semanticSearch ?? SemanticSearchService()
+        self.documentReader = documentReader ?? DocumentIndexer()
         self.docxExporter = docxExporter ?? DocxExportService()
         self.dictation = SpeechDictationService()
         self.schoolInfo = PersistenceController.loadOrCreateSchoolInfo(in: modelContext)
         self.accessibilitySettings = SettingsStore.loadAccessibilitySettings()
         self.selectedFormat = SettingsStore.loadLastFormat()
-        self.geminiApiKey = KeychainStore.read(.geminiApiKey) ?? ""
+        KeychainStore.delete(.legacyApiKey)
 
         reloadFromStore()
         self.selectedStudent = students.first
@@ -296,88 +218,52 @@ public final class AppViewModel {
         persist()
     }
 
-    // MARK: - Indice documentale (RAG)
+    // MARK: - Importazione di documenti
     public func importDocuments(urls: [URL]) async {
         guard !urls.isEmpty else { return }
         isImportingDocuments = true
         errorMessage = nil
         statusMessage = nil
-        let search = semanticSearch
-        var importedTitles: [String] = []
-        var totalChunks = 0
+
+        let reader = documentReader
+        var imported: [(title: String, text: String)] = []
         var failures: [String] = []
-        var singleDocumentText: String?
+
         for url in urls {
             do {
-                let imported = try await Task.detached(priority: .userInitiated) {
-                    try search.importDocument(url: url)
+                let text = try await Task.detached(priority: .userInitiated) {
+                    let scoped = url.startAccessingSecurityScopedResource()
+                    defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                    return try reader.extractText(from: url)
                 }.value
-                importedTitles.append(imported.title)
-                totalChunks += imported.chunkCount
-                if urls.count == 1 { singleDocumentText = imported.text }
+                imported.append((url.deletingPathExtension().lastPathComponent, text))
             } catch {
                 failures.append("\(url.lastPathComponent) — \(error.localizedDescription)")
             }
         }
-        var filledEditor = false
-        if let singleDocumentText,
-           singleDocumentText.count <= Self.editorFillLimit,
-           sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            sourceText = singleDocumentText
-            filledEditor = true
-        }
-        refreshIndexState()
+
         isImportingDocuments = false
-        if !importedTitles.isEmpty {
-            let names = importedTitles.joined(separator: ", ")
-            if filledEditor {
-                statusMessage = "«\(names)» è ora il testo di partenza nell'editor, e i suoi "
-                    + "\(Plural.it(totalChunks, "frammento", "frammenti")) sono consultabili dall'IA. "
-                    + "Modificalo pure prima di generare."
-            } else {
-                statusMessage = importedTitles.count == 1
-                    ? "Indicizzato «\(names)»: \(Plural.it(totalChunks, "frammento", "frammenti")) consultabili dall'IA."
-                    : "Indicizzati \(Plural.it(importedTitles.count, "documento", "documenti")) (\(names)): \(Plural.it(totalChunks, "frammento", "frammenti")) in tutto."
-            }
+
+        if !imported.isEmpty {
+            let body = imported.count == 1
+                ? imported[0].text
+                : imported.map { "## \($0.title)\n\n\($0.text)" }.joined(separator: "\n\n")
+            let separator = sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? ""
+                : "\n\n"
+            sourceText = String((sourceText + separator + body).prefix(Self.editorFillLimit))
+
+            let names = imported.map(\.title).joined(separator: ", ")
+            statusMessage = "«\(names)» "
+                + (imported.count == 1 ? "è ora" : "sono ora")
+                + " nell'editor. Modifica pure il testo prima di generare."
         }
+
         if !failures.isEmpty {
             errorMessage = failures.count == 1
                 ? "Non è stato possibile leggere \(failures[0])"
                 : "Non è stato possibile leggere \(failures.count) file:\n• " + failures.joined(separator: "\n• ")
         }
-    }
-    public func indexEditorText() async {
-        let trimmed = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            errorMessage = "Non c'è testo da indicizzare nell'editor."
-            return
-        }
-        let search = semanticSearch
-        let text = sourceText
-        let count = await Task.detached(priority: .userInitiated) {
-            search.indexRawText(text: text)
-        }.value
-        refreshIndexState()
-        errorMessage = nil
-        statusMessage = "Indicizzati \(Plural.it(count, "frammento", "frammenti")) del testo dell'editor."
-    }
-
-    public func removeIndexedDocument(_ document: IndexedDocument) {
-        semanticSearch.removeDocument(title: document.title)
-        refreshIndexState()
-        errorMessage = nil
-        statusMessage = "«\(document.title)» rimosso dall'indice."
-    }
-
-    public func clearSemanticIndex() {
-        semanticSearch.clearIndex()
-        refreshIndexState()
-        errorMessage = nil
-        statusMessage = "Indice svuotato."
-    }
-
-    private func refreshIndexState() {
-        indexedDocuments = semanticSearch.indexedDocuments
     }
 
     // MARK: - Dettatura
@@ -424,87 +310,45 @@ public final class AppViewModel {
             errorMessage = LicenseGate.explanation(licenseState)
             return
         }
-        if selectedFormat.isComposedLocally {
-            composeLocally(for: student)
-            rememberWork()
-            return
-        }
-        guard !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            errorMessage = "Inserisci il testo base della lezione o della verifica curricolare."
-            return
-        }
-        guard !SourceTextCheck.looksLikeAnInstruction(sourceText) else {
-            errorMessage = SourceTextCheck.instructionExplanation(for: sourceText)
-            return
-        }
 
-        if let blocked = SourceTextScreening.blockingMessage(
-            screening: sourceTextScreening,
-            reviewed: sourceTextReviewed,
-            goesToCloud: usesRemoteModel
-        ) {
-            errorMessage = blocked
+        switch selectedFormat.localComposition {
+        case .always:
+            composeLocally(for: student)
+
+        case .builtByTeacher:
+            errorMessage = selectedFormat == .interactiveQuiz
+                ? "Il quiz non si ricava da un testo: lo scrivi tu con «Scrivi il quiz», "
+                  + "nella colonna a sinistra."
+                : "La mappa non si ricava da un testo: la costruisci tu con «Costruisci mappa», "
+                  + "nella colonna a sinistra."
             return
-        }
-        if selectedFormat.localComposition == .fromAnyText,
-           engineOverride == nil,
-           !(selectedFormat.prefersModelWhenAvailable && activeEngine != nil) {
-            composeFromText(for: student)
-            rememberWork()
-            return
-        }
-        if selectedFormat.localComposition == .fromStructuredText {
-            let exam = ExamParser.parse(sourceText)
-            if !exam.isEmpty {
-                composeEquipollente(exam, for: student)
-                rememberWork()
-            return
-            }
-            guard activeEngine != nil else {
-                errorMessage = "Non ho riconosciuto quesiti numerati in questo testo, quindi non posso "
-                    + "ricostruirlo da solo. Incolla la verifica della classe con i quesiti numerati "
-                    + "(1., 2., 3.), oppure configura una API key per farla scrivere all'IA."
+
+        case .fromAnyText, .fromStructuredText:
+            guard !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                errorMessage = "Inserisci il testo base della lezione o della verifica curricolare."
                 return
             }
-        }
-        guard let engine = activeEngine else {
-            errorMessage = engineSelector.blockingMessage
-            return
-        }
-        await generate(with: engine, for: student)
-    }
-
-    private func generate(with engine: AIEngine, for student: StudentProfile) async {
-        isGenerating = true
-        generatedContent = ""
-        errorMessage = nil
-        statusMessage = nil
-
-        let prompt = buildPrompt(for: student, engine: engine)
-        let studentName = student.name
-
-        do {
-            let service = try engineSelector.makeService(engine, apiKey: geminiApiKey)
-            let result = try await service.generateStreaming(prompt: prompt) { token in
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    let tail = self.generatedContent.suffix(StudentPseudonymizer.placeholder.count)
-                    let head = self.generatedContent.dropLast(tail.count)
-                    let rewritten = StudentPseudonymizer.restoreIdentity(
-                        in: String(tail) + token,
-                        name: studentName
-                    )
-                    self.generatedContent = String(head) + rewritten
-                }
+            guard !SourceTextCheck.looksLikeAnInstruction(sourceText) else {
+                errorMessage = SourceTextCheck.instructionExplanation(for: sourceText)
+                return
             }
-            generatedContent = StudentPseudonymizer.restoreIdentity(in: result, name: studentName)
-            rememberWork()
-        } catch {
-            errorMessage = failureMessage(for: error)
+
+            if selectedFormat.localComposition == .fromStructuredText {
+                let exam = ExamParser.parse(sourceText)
+                guard !exam.isEmpty else {
+                    errorMessage = "Non ho riconosciuto quesiti numerati in questo testo, quindi non posso "
+                        + "ricostruirlo. Incolla la verifica della classe con i quesiti numerati (1., 2., 3.)."
+                    return
+                }
+                composeEquipollente(exam, for: student)
+            } else {
+                composeFromText(for: student)
+            }
         }
 
-        isGenerating = false
+        rememberWork()
     }
+
     public func applySimplifiedText(_ text: String, rewritten: Int, gulpease: Int) {
         guard LicenseGate.canGenerate(licenseState) else {
             errorMessage = LicenseGate.explanation(licenseState)
@@ -529,7 +373,7 @@ public final class AppViewModel {
         generatedContent = MindmapComposer.compose(nodes)
         selectedFormat = .conceptMap
         errorMessage = nil
-        statusMessage = "Mappa pronta senza IA. Lo studente la trova navigabile nella sua scheda."
+        statusMessage = "Mappa pronta. Lo studente la trova navigabile nella sua scheda."
         rememberWork()
     }
     public func applyQuiz(_ questions: [QuizQuestion]) {
@@ -542,7 +386,7 @@ public final class AppViewModel {
         selectedFormat = .interactiveQuiz
         rememberWork()
         errorMessage = nil
-        statusMessage = "\(Plural.it(questions.count, "domanda pronta", "domande pronte")) senza IA. "
+        statusMessage = "\(Plural.it(questions.count, "domanda pronta", "domande pronte")). "
             + "Lo studente le trova nella sua scheda, cliccabili."
     }
     private func composeFromText(for student: StudentProfile) {
@@ -554,7 +398,7 @@ public final class AppViewModel {
             generatedContent = GlossaryComposer.compose(terms: terms, interest: student.interest)
             statusMessage = terms.isEmpty
                 ? nil
-                : "\(Plural.it(terms.count, "termine trovato", "termini trovati")) senza IA. "
+                : "\(Plural.it(terms.count, "termine trovato", "termini trovati")) nel testo. "
                   + "Togli quelli che non servono e scrivi le definizioni."
 
         case .clearExplanation:
@@ -570,11 +414,11 @@ public final class AppViewModel {
             generatedContent = DeskCardComposer.compose(entries: entries)
             statusMessage = entries.isEmpty
                 ? nil
-                : "\(Plural.it(entries.count, "voce trovata", "voci trovate")) senza IA. "
+                : "\(Plural.it(entries.count, "voce trovata", "voci trovate")) nel testo. "
                   + "Il formulario vale se è corto: togli quello che l'alunno ha già acquisito."
 
         default:
-            errorMessage = "Questo formato non ha ancora una composizione senza IA."
+            errorMessage = "Questo formato non si compone da qui."
         }
     }
     private func composeEquipollente(_ exam: ParsedExam, for student: StudentProfile) {
@@ -589,7 +433,7 @@ public final class AppViewModel {
         ))
 
         let quesiti = Plural.it(exam.questions.count, "quesito", "quesiti")
-        statusMessage = "Ricostruita senza IA da \(quesiti). Aggiungi tu la scomposizione guidata "
+        statusMessage = "Ricostruita da \(quesiti). Aggiungi tu la scomposizione guidata "
             + "dove serve: è la parte che richiede di conoscere l'alunno."
     }
     private func composeLocally(for student: StudentProfile) {
@@ -606,46 +450,9 @@ public final class AppViewModel {
                 compensatory: student.compensatoryMeasures,
                 dispensatory: student.dispensatoryMeasures
             ))
-            statusMessage = "Scheda compilata dalle misure registrate per \(student.name). Nessun dato è uscito dal Mac."
+            statusMessage = "Scheda compilata dalle misure registrate per \(student.name)."
         default:
-            errorMessage = "Questo formato non ha ancora una composizione senza IA."
+            errorMessage = "Questo formato non si compone da qui."
         }
-    }
-    func failureMessage(for error: Error) -> String {
-        guard let modelError = error as? SystemModelError,
-              modelError == .contextTooLong,
-              !generatedContent.isEmpty
-        else { return error.localizedDescription }
-
-        return """
-        Il modello integrato nel Mac ha esaurito lo spazio mentre scriveva: \
-        qui sotto c'è solo la parte iniziale, non consegnarla così com'è. \
-        "\(selectedFormat.title)" è un formato lungo e non ci sta. \
-        Con una API key di Google Gemini nelle impostazioni arriva in fondo.
-        """
-    }
-    func buildPrompt(for student: StudentProfile, engine: AIEngine? = nil) -> String {
-        let usesCloud = (engine ?? activeEngine) == .gemini
-        let template = selectedFormat.systemPrompt(tablesSupported: usesCloud)
-            .replacingOccurrences(of: "{INTEREST}", with: student.interest)
-        let ragChunks = sourceText.count > 1500
-            ? []
-            : semanticSearch.searchRelevantContext(query: sourceText, topK: 2)
-        let ragContext = ragChunks.isEmpty ? "" : """
-
-        [CONTESTO DOCUMENTALE ESTRATTO DAI MATERIALI INDICIZZATI]:
-        \(ragChunks.map(\.text).joined(separator: "\n---\n"))
-        """
-
-        return """
-        \(template)
-        \(StudentPseudonymizer.promptProfile(for: student))
-        \(ragContext)
-        TESTO / VERIFICA CURRICOLARE DA TRASFORMARE:
-        \"\"\"
-        \(sourceText)
-        \"\"\"
-        Genera adesso il materiale didattico completo e pronto all'uso.
-        """
     }
 }

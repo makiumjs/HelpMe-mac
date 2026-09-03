@@ -145,12 +145,11 @@ final class PdpSheetComposerTests: XCTestCase {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let vm = AppViewModel(modelContext: ModelContext(container))
-        vm.systemModelStatus = .appleIntelligenceOff      // nessun modello locale
         vm.addStudent(StudentProfile(name: "Andrea Pirlo", classInfo: "1ITA"))
         vm.selectedFormat = .pdpSummary
         vm.sourceText = ""
 
-        XCTAssertTrue(vm.canGenerate, "Un formato che non usa l'IA non dipende da un motore.")
+        XCTAssertTrue(vm.canGenerate, "La scheda si compila dalle misure registrate, non da un testo.")
         await vm.generateMaterial()
 
         XCTAssertNil(vm.errorMessage)
@@ -158,7 +157,7 @@ final class PdpSheetComposerTests: XCTestCase {
     }
 
     @MainActor
-    func testTheTeacherIsToldThatThisFormatDoesNotUseAI() throws {
+    func testTheTeacherIsToldWhereTheSheetComesFrom() throws {
         let container = try ModelContainer(
             for: StudentProfile.self, GloLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
@@ -166,7 +165,7 @@ final class PdpSheetComposerTests: XCTestCase {
         let vm = AppViewModel(modelContext: ModelContext(container))
         vm.selectedFormat = .pdpSummary
 
-        let riga = try XCTUnwrap(vm.engineRationale)
-        XCTAssertTrue(riga.contains("non usa l'IA"), riga)
+        let riga = try XCTUnwrap(vm.formatRationale)
+        XCTAssertTrue(riga.contains("misure registrate"), riga)
     }
 }

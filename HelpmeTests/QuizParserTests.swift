@@ -196,11 +196,4 @@ final class QuizParserTests: XCTestCase {
         XCTAssertEqual(questions.first?.options.count, 4)
         XCTAssertTrue(try! XCTUnwrap(questions.first).isUsable)
     }
-
-    func testQuizPromptStillDescribesTheParsedFormat() {
-        let prompt = DidacticFormat.interactiveQuiz.systemPromptTemplate
-        XCTAssertTrue(prompt.contains("[x]"), "Il prompt deve chiedere il marcatore che il parser legge")
-        XCTAssertTrue(prompt.contains("[ ]"))
-        XCTAssertTrue(prompt.contains("::"))
-    }
 }

@@ -59,7 +59,6 @@ final class WorkPersistenceTests: XCTestCase {
     func testGeneratingRemembersWithoutBeingAsked() async throws {
         let container = try makeContainer()
         let vm = AppViewModel(modelContext: ModelContext(container))
-        vm.systemModelStatus = .appleIntelligenceOff
         let alunno = StudentProfile(name: "Andrea Pirlo", classInfo: "1ITA")
         vm.addStudent(alunno)
         vm.selectedFormat = .pdpSummary

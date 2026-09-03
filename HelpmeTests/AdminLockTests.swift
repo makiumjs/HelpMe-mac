@@ -191,68 +191,18 @@ final class AdminLockTests: XCTestCase {
 
     // MARK: - Integrazione con AppViewModel
 
+    /// Le versioni che parlavano con un modello in rete lasciavano la chiave
+    /// nel portachiavi di sistema. Questa non ne scrive nessuna, e all'avvio
+    /// cancella quella eventualmente rimasta: altrimenti su un Mac aggiornato
+    /// resterebbe una credenziale di un servizio che l'app non usa più.
     @MainActor
-    func testCannotSetTheApiKeyWhileLocked() {
-        let viewModel = makeAppViewModel()
-        XCTAssertThrowsError(try viewModel.setGeminiApiKey("una-chiave-qualunque")) { error in
-            guard case AppViewModel.ConfigurationError.locked = error else {
-                return XCTFail("Atteso .locked, ricevuto \(error)")
-            }
-        }
-        XCTAssertFalse(viewModel.hasGeminiApiKey)
-    }
+    func testTheLegacyApiKeyIsPurgedOnLaunch() {
+        KeychainStore.save("AIzaSyChiaveVecchia", for: .legacyApiKey)
+        XCTAssertNotNil(KeychainStore.read(.legacyApiKey))
 
-    @MainActor
-    func testSettingTheApiKeyWhileUnlockedSucceeds() throws {
-        let viewModel = makeAppViewModel()
-        try viewModel.adminLock.setInitialPassword("password-di-prova-123")
+        _ = makeAppViewModel()
 
-        try viewModel.setGeminiApiKey("AIzaSyTest1234567890")
-
-        XCTAssertTrue(viewModel.hasGeminiApiKey)
-        XCTAssertEqual(viewModel.geminiApiKeyHint, "••••7890")
-    }
-
-    @MainActor
-    func testLockingAgainBlocksFurtherChanges() throws {
-        let viewModel = makeAppViewModel()
-        try viewModel.adminLock.setInitialPassword("password-di-prova-123")
-        try viewModel.setGeminiApiKey("prima-chiave")
-
-        viewModel.adminLock.lock()
-
-        XCTAssertThrowsError(try viewModel.setGeminiApiKey("seconda-chiave"))
-        // La chiave precedente resta quella che era: un blocco fallito non
-        // deve svuotarla né sostituirla in silenzio.
-        XCTAssertEqual(viewModel.geminiApiKeyHint, "••••iave")
-    }
-
-    /// Il portachiavi può rifiutare la scrittura. Se succede, la chiave in
-    /// memoria non deve avanzare comunque: al riavvio successivo l'app
-    /// crederebbe di avere una chiave che non c'è, e la generazione
-    /// fallirebbe senza nulla che punti al salvataggio andato male.
-    @MainActor
-    func testKeychainFailureIsReportedNotSwallowed() throws {
-        // Non si può far fallire il portachiavi vero: si verifica almeno che
-        // il percorso di errore esista e sia distinto da quello di blocco.
-        let storage = AppViewModel.ConfigurationError.storageFailure
-        let locked = AppViewModel.ConfigurationError.locked
-        XCTAssertNotEqual(storage.errorDescription, locked.errorDescription)
-        XCTAssertTrue(try XCTUnwrap(storage.errorDescription).contains("portachiavi"))
-        XCTAssertTrue(try XCTUnwrap(storage.errorDescription).lowercased().contains("non è stata applicata"),
-                      "il messaggio deve dire che la configurazione NON è stata applicata")
-    }
-
-    @MainActor
-    func testEmptyKeyClearsIt() throws {
-        let viewModel = makeAppViewModel()
-        try viewModel.adminLock.setInitialPassword("password-di-prova-123")
-        try viewModel.setGeminiApiKey("una-chiave")
-        XCTAssertTrue(viewModel.hasGeminiApiKey)
-
-        try viewModel.setGeminiApiKey("")
-        XCTAssertFalse(viewModel.hasGeminiApiKey)
-        XCTAssertNil(viewModel.geminiApiKeyHint)
+        XCTAssertNil(KeychainStore.read(.legacyApiKey))
     }
 
     // MARK: - Helper
@@ -270,10 +220,10 @@ final class AdminLockTests: XCTestCase {
     @MainActor
     private func makeAppViewModel() -> AppViewModel {
         KeychainStore.delete(.adminPasswordHash)
-        KeychainStore.delete(.geminiApiKey)
+        KeychainStore.delete(.legacyApiKey)
         addTeardownBlock {
             KeychainStore.delete(.adminPasswordHash)
-            KeychainStore.delete(.geminiApiKey)
+            KeychainStore.delete(.legacyApiKey)
         }
         return AppViewModel(modelContext: .init(PersistenceController(inMemory: true).container))
     }

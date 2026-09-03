@@ -124,13 +124,12 @@ final class EquipollenteComposerTests: XCTestCase {
     // MARK: - Nell'app
 
     @MainActor
-    func testTheSheetIsBuiltWithNoEngineAtAll() async throws {
+    func testTheSheetIsBuiltFromTheCurricularExam() async throws {
         let container = try ModelContainer(
             for: StudentProfile.self, GloLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let vm = AppViewModel(modelContext: ModelContext(container))
-        vm.systemModelStatus = .appleIntelligenceOff
         vm.addStudent(StudentProfile(name: "Andrea Pirlo", classInfo: "1ITA"))
         vm.selectedFormat = .equipollenteExam
         vm.sourceText = verifica
@@ -140,7 +139,7 @@ final class EquipollenteComposerTests: XCTestCase {
 
         XCTAssertNil(vm.errorMessage)
         XCTAssertTrue(vm.generatedContent.contains("Verifica equipollente"), vm.generatedContent)
-        XCTAssertTrue(vm.statusMessage?.contains("senza IA") ?? false, vm.statusMessage ?? "nessuno")
+        XCTAssertTrue(vm.statusMessage?.contains("Ricostruita da") ?? false, vm.statusMessage ?? "nessuno")
     }
 
     /// Un testo che non è una verifica non deve produrre una finta verifica:
@@ -152,7 +151,6 @@ final class EquipollenteComposerTests: XCTestCase {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let vm = AppViewModel(modelContext: ModelContext(container))
-        vm.systemModelStatus = .appleIntelligenceOff
         vm.addStudent(StudentProfile(name: "Andrea Pirlo", classInfo: "1ITA"))
         vm.selectedFormat = .equipollenteExam
         vm.sourceText = "Il nome segreto di Roma era noto a pochi sacerdoti e tenuto nascosto."

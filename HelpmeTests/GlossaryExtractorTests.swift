@@ -103,7 +103,6 @@ final class GlossaryExtractorTests: XCTestCase {
             for: StudentProfile.self, GloLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let vm = AppViewModel(modelContext: ModelContext(container))
-        vm.systemModelStatus = .appleIntelligenceOff
         vm.addStudent(StudentProfile(name: "Andrea Pirlo", classInfo: "1ITA"))
         vm.selectedFormat = .glossary
         vm.sourceText = brano
@@ -113,25 +112,5 @@ final class GlossaryExtractorTests: XCTestCase {
 
         XCTAssertNil(vm.errorMessage)
         XCTAssertTrue(vm.generatedContent.contains("Litosfera"), vm.generatedContent)
-    }
-
-    /// Ma se il docente sceglie un motore a mano, vuole le definizioni
-    /// scritte: non gli si impone la scheda da compilare.
-    @MainActor
-    func testChoosingAnEngineByHandGoesBackToTheModel() async throws {
-        let container = try ModelContainer(
-            for: StudentProfile.self, GloLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-        let vm = AppViewModel(modelContext: ModelContext(container))
-        vm.systemModelStatus = .appleIntelligenceOff      // nessun motore utilizzabile
-        vm.addStudent(StudentProfile(name: "Andrea Pirlo", classInfo: "1ITA"))
-        vm.selectedFormat = .glossary
-        vm.engineOverride = .gemini                       // scelto a mano, ma senza chiave
-        vm.sourceText = brano
-
-        await vm.generateMaterial()
-
-        XCTAssertTrue(vm.generatedContent.isEmpty)
-        XCTAssertNotNil(vm.errorMessage, "Deve dire che quel motore non è disponibile, non ripiegare in silenzio.")
     }
 }

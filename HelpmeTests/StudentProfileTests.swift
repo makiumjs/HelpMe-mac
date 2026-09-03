@@ -91,72 +91,38 @@ final class StudentProfileTests: XCTestCase {
         let context = makeContext()
         let viewModel = AppViewModel(modelContext: context)
         viewModel.addStudent(StudentProfile(name: "Paolo Gialli", classInfo: "3ª B"))
-        viewModel.selectedFormat = .equipollenteExam   // formato che passa da un motore
+        viewModel.selectedFormat = .equipollenteExam
         viewModel.sourceText = "Il ciclo Otto a quattro tempi."
 
-        // Nessun motore disponibile: niente chiamate vere, e soprattutto un
-        // esito deterministico. Il registro GLO è un atto formale del docente
-        // (vedi TeacherViewModel.addGloEntry): generare materiale non deve
+        // Il registro GLO è un atto formale del docente (vedi
+        // TeacherViewModel.addGloEntry): generare materiale non deve
         // scriverci dentro, né riuscendo né fallendo.
-        viewModel.systemModelStatus = .appleIntelligenceOff
         await viewModel.generateMaterial()
 
         XCTAssertTrue(viewModel.gloEntries.isEmpty)
         XCTAssertNotNil(viewModel.errorMessage)
     }
 
-    /// Il modello integrato esaurisce il contesto *mentre scrive*, perché la
-    /// sua finestra tiene testo di partenza e documento insieme. Successo
-    /// misurato il 28 agosto 2026: due righe di testo, verifica equipollente,
-    /// contesto pieno a metà documento. Se in quel caso l'app dice "accorcia
-    /// il testo", manda il docente a tagliare una lezione già cortissima.
-    func testRunningOutOfContextWhileWritingDoesNotBlameTheTeachersText() {
+    /// Il quiz non si ricava da un testo: il pulsante deve spegnersi e dire
+    /// dove si scrive, non fallire al click.
+    func testAFormatThatIsWrittenByTheTeacherSaysSoBeforeTrying() throws {
         let viewModel = AppViewModel(modelContext: makeContext())
-        viewModel.selectedFormat = .equipollenteExam
-        viewModel.generatedContent = "**VERIFICA DI MECCANICA AGRARIA**\n\n1. Descrivi il ciclo"
-
-        let message = viewModel.failureMessage(for: SystemModelError.contextTooLong)
-
-        XCTAssertTrue(message.contains("parte iniziale"),
-                      "Va detto che il testo a schermo è monco: \(message)")
-        XCTAssertTrue(message.contains("Gemini"),
-                      "Va detta la via d'uscita vera: \(message)")
-        XCTAssertFalse(message.contains("Accorcia il testo di partenza"),
-                       "Consiglio inutile quando a sforare è l'uscita: \(message)")
-    }
-
-    /// A documento non ancora cominciato non sappiamo chi abbia sforato, e il
-    /// messaggio generico — che nomina entrambe le cause — va bene.
-    func testRunningOutOfContextBeforeWritingKeepsTheGeneralExplanation() {
-        let viewModel = AppViewModel(modelContext: makeContext())
-
-        let message = viewModel.failureMessage(for: SystemModelError.contextTooLong)
-
-        XCTAssertEqual(message, SystemModelError.contextTooLong.errorDescription)
-    }
-
-    /// Su un Mac senza Apple Intelligence e senza chiave il pulsante di
-    /// generazione deve spegnersi e spiegare perché, non fallire al click.
-    func testWithoutAnyEngineTheTeacherIsToldWhyBeforeTrying() throws {
-        let viewModel = AppViewModel(modelContext: makeContext())
-        viewModel.selectedFormat = .interactiveQuiz   // generarlo richiede ancora un modello
-        viewModel.systemModelStatus = .appleIntelligenceOff
+        viewModel.selectedFormat = .interactiveQuiz
 
         XCTAssertFalse(viewModel.canGenerate)
-        let message = try XCTUnwrap(viewModel.engineRationale)
-        XCTAssertTrue(message.contains("Gemini"), "Va detto come sbloccarsi: \(message)")
+        let message = try XCTUnwrap(viewModel.formatRationale)
+        XCTAssertTrue(message.contains("Scrivi il quiz"), "Va detto dove si scrive: \(message)")
     }
 
-    /// Ma la verifica equipollente, senza nessun motore, si costruisce lo
-    /// stesso: i quesiti sono già quelli del docente curricolare.
-    func testTheEquipollenteExamNoLongerNeedsAnEngineAtAll() throws {
+    /// La verifica equipollente si costruisce dal testo del docente
+    /// curricolare: i quesiti li ha già scelti lui.
+    func testTheEquipollenteExamIsBuiltFromTheTeachersOwnText() throws {
         let viewModel = AppViewModel(modelContext: makeContext())
         viewModel.selectedFormat = .equipollenteExam
-        viewModel.systemModelStatus = .appleIntelligenceOff
         viewModel.sourceText = "1. Prima domanda\n2. Seconda domanda"
 
         XCTAssertTrue(viewModel.canGenerate)
-        let message = try XCTUnwrap(viewModel.engineRationale)
-        XCTAssertTrue(message.contains("senza IA"), message)
+        let message = try XCTUnwrap(viewModel.formatRationale)
+        XCTAssertTrue(message.contains("quesiti numerati"), message)
     }
 }

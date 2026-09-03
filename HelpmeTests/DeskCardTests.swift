@@ -101,7 +101,6 @@ final class DeskCardTests: XCTestCase {
             for: StudentProfile.self, GloLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let vm = AppViewModel(modelContext: ModelContext(container))
-        vm.systemModelStatus = .appleIntelligenceOff
         vm.addStudent(StudentProfile(name: "Andrea Pirlo", classInfo: "1ITA"))
         vm.selectedFormat = .deskCheatSheet
         vm.sourceText = lezione
@@ -121,7 +120,6 @@ final class DeskCardTests: XCTestCase {
             for: StudentProfile.self, GloLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let vm = AppViewModel(modelContext: ModelContext(container))
-        vm.systemModelStatus = .appleIntelligenceOff
         vm.addStudent(StudentProfile(name: "Andrea Pirlo", classInfo: "1ITA"))
         vm.selectedFormat = .glossary
         vm.sourceText = lezione

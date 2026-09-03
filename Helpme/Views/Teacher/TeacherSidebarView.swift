@@ -79,7 +79,7 @@ public struct TeacherSidebarView: View {
             
             Divider()
             VStack(alignment: .leading, spacing: 8) {
-                Label("Formato Didattico", systemImage: "sparkles.rectangle.stack.fill")
+                Label("Formato Didattico", systemImage: "rectangle.stack.fill")
                     .font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundColor(Color.institutional)
                 VStack(spacing: 2) {
@@ -138,14 +138,14 @@ public struct TeacherSidebarView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.bordered)
-                .help("Scrive un quiz cliccabile senza passare dall'IA")
+                .help("Scrive un quiz cliccabile, domanda per domanda")
 
                 Button(action: { teacherViewModel.activeSheet = .mindmapBuilder }) {
                     Label("Costruisci la mappa", systemImage: "point.topleft.down.curvedto.point.bottomright.up")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.bordered)
-                .help("Costruisce una mappa concettuale navigabile senza passare dall'IA")
+                .help("Costruisce una mappa concettuale navigabile, un livello per riga")
 
                 Button(action: { teacherViewModel.activeSheet = .simplifier }) {
                     Label("Semplifica il testo", systemImage: "text.badge.checkmark")

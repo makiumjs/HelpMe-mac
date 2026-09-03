@@ -113,7 +113,6 @@ final class UnnumberedExamTests: XCTestCase {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let vm = AppViewModel(modelContext: ModelContext(container))
-        vm.systemModelStatus = .appleIntelligenceOff
         vm.addStudent(StudentProfile(name: "Andrea Pirlo", classInfo: "1ITA"))
         vm.selectedFormat = .equipollenteExam
         vm.sourceText = storia

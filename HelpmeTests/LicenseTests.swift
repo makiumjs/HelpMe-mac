@@ -221,16 +221,16 @@ final class LicenseTests: XCTestCase {
     // MARK: - Effetto sull'app
 
     @MainActor
-    func testAnExpiredLicenseStopsGenerationAndSaysSoInsteadOfTalkingAboutEngines() async throws {
+    func testAnExpiredLicenseStopsGenerationAndSaysSoInsteadOfTalkingAboutTheFormat() async throws {
         let viewModel = AppViewModel(modelContext: try makeContext())
         viewModel.licenseState = .expired(License(school: "I.I.S. Della Lucia", issuedOn: day(-400), expiresOn: day(-1)))
         viewModel.addStudent(StudentProfile(name: "Paolo Gialli", classInfo: "3ª B"))
         viewModel.sourceText = "Il ciclo Otto a quattro tempi."
 
         XCTAssertFalse(viewModel.canGenerate)
-        let rationale = try XCTUnwrap(viewModel.engineRationale)
+        let rationale = try XCTUnwrap(viewModel.formatRationale)
         XCTAssertTrue(rationale.contains("scaduta"),
-                      "Con la licenza scaduta il docente deve leggere di quello, non del motore: \(rationale)")
+                      "Con la licenza scaduta il docente deve leggere di quello, non del formato: \(rationale)")
 
         await viewModel.generateMaterial()
 

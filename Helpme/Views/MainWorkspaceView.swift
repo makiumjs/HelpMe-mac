@@ -62,50 +62,6 @@ public struct MainWorkspaceView: View {
                     .accessibilityLabel("Selettore modalità di lavoro docente o studente")
                     
                     Spacer()
-                    Menu {
-                        Button {
-                            appViewModel.engineOverride = nil
-                        } label: {
-                            Label("Scelta automatica", systemImage: "wand.and.stars")
-                        }
-
-                        Divider()
-
-                        ForEach(AIEngine.allCases, id: \.self) { engine in
-                            let usable = appViewModel.engineSelector.usableEngines.contains(engine)
-                            Button {
-                                appViewModel.engineOverride = engine
-                            } label: {
-                                Label(
-                                    usable ? engine.displayName : "\(engine.displayName) — non disponibile",
-                                    systemImage: engine.iconName
-                                )
-                            }
-                            .disabled(!usable)
-                        }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: appViewModel.activeEngine?.iconName ?? "exclamationmark.triangle")
-                                .foregroundColor(appViewModel.activeEngine == nil ? .orange : Color.institutional)
-                                .font(.caption)
-                            Text(appViewModel.activeEngine?.displayName ?? "Nessun motore")
-                                .font(.system(size: 11, weight: .medium, design: .rounded))
-                                .foregroundColor(.secondary)
-                            if appViewModel.engineOverride == nil, appViewModel.activeEngine != nil {
-                                Image(systemName: "wand.and.stars")
-                                    .font(.system(size: 8))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.secondary.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .help(appViewModel.engineRationale ?? "")
-                    .accessibilityLabel("Motore di generazione: \(appViewModel.activeEngine?.displayName ?? "nessuno disponibile")")
                     Button(action: { showSettingsPopover.toggle() }) {
                         Image(systemName: "slider.horizontal.3")
                             .font(.system(size: 15, weight: .semibold))
@@ -115,9 +71,9 @@ public struct MainWorkspaceView: View {
                     .buttonStyle(.plain)
                     .background(Color.secondary.opacity(0.1))
                     .clipShape(Circle())
-                    .accessibilityLabel("Impostazioni di accessibilità DSA, font e API Key")
+                    .accessibilityLabel("Impostazioni di accessibilità DSA, carattere e licenza")
                     .popover(isPresented: $showSettingsPopover) {
-                        accessibilityAndApiSettingsView()
+                        accessibilitySettingsView()
                     }
                 }
                 .padding(.horizontal, 16)
@@ -159,17 +115,8 @@ public struct MainWorkspaceView: View {
                     .buttonStyle(.bordered)
                     .disabled(appViewModel.isImportingDocuments)
                     .help("PDF, Word (.docx), EPUB, RTF o testo semplice")
-                    .accessibilityHint("Apre il selettore di file per aggiungere materiale consultabile dall'IA")
+                    .accessibilityHint("Apre il selettore di file: il testo del documento finisce nell'editor")
 
-                    Button(action: {
-                        Task { await appViewModel.indexEditorText() }
-                    }) {
-                        Label("Indicizza testo", systemImage: "text.magnifyingglass")
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(appViewModel.sourceText.trimmingCharacters(in: .whitespaces).isEmpty)
-                    .accessibilityHint("Aggiunge il testo dell'editor all'indice consultabile dall'IA")
                 }
 
                 TextEditor(text: $appViewModel.sourceText)
@@ -201,29 +148,6 @@ public struct MainWorkspaceView: View {
                     dictationBanner
                 }
 
-                if !appViewModel.indexedDocuments.isEmpty {
-                    indexedDocumentsRow
-                }
-                if appViewModel.usesRemoteModel,
-                   let warning = appViewModel.sourceTextScreening.warning,
-                   !appViewModel.sourceTextReviewed {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label(warning, systemImage: "exclamationmark.shield.fill")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.orange)
-                        Button("È materiale didattico, procedi") {
-                            appViewModel.confirmSourceTextReviewed()
-                        }
-                        .buttonStyle(.bordered)
-                        .font(.system(size: 11))
-                    }
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.orange.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .accessibilityElement(children: .combine)
-                }
-
                 Button(action: {
                     Task {
                         await appViewModel.generateMaterial()
@@ -234,7 +158,7 @@ public struct MainWorkspaceView: View {
                             ProgressView()
                                 .controlSize(.small)
                         } else {
-                            Image(systemName: "sparkles")
+                            Image(systemName: "doc.text.fill")
                         }
                         Text(appViewModel.isGenerating ? "Generazione in corso..." : "Genera Materiale Equipollente (D.I. 182/2020)")
                             .font(.system(size: 13, weight: .bold, design: .rounded))
@@ -246,11 +170,9 @@ public struct MainWorkspaceView: View {
                 .tint(Color.institutional)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .keyboardShortcut("g", modifiers: .command)
-                .disabled(appViewModel.isGenerating
-                          || !appViewModel.canGenerate
-                          || appViewModel.sourceText.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(appViewModel.isGenerating || !appViewModel.canGenerate)
 
-                if let rationale = appViewModel.engineRationale {
+                if let rationale = appViewModel.formatRationale {
                     Label(rationale, systemImage: appViewModel.canGenerate ? "info.circle" : "exclamationmark.triangle.fill")
                         .font(.system(size: 10.5))
                         .foregroundStyle(appViewModel.canGenerate ? Color.secondary : Color.orange)
@@ -381,73 +303,13 @@ public struct MainWorkspaceView: View {
         .accessibilityLabel("Dettatura in corso")
     }
 
-    // MARK: - Documenti indicizzati
-    private var indexedDocumentsRow: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Label(
-                    "Consultabili dall'IA: \(Plural.it(appViewModel.indexedDocuments.count, "documento", "documenti")), \(Plural.it(appViewModel.indexedChunkCount, "frammento", "frammenti"))",
-                    systemImage: "books.vertical.fill"
-                )
-                .font(.system(size: 10.5, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
-                Spacer()
-                Button("Svuota") {
-                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
-                        appViewModel.clearSemanticIndex()
-                    }
-                }
-                .buttonStyle(.plain)
-                .font(.system(size: 10.5, weight: .medium, design: .rounded))
-                .foregroundStyle(Color.institutional)
-                .accessibilityHint("Rimuove tutti i documenti dall'indice")
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(appViewModel.indexedDocuments) { document in
-                        HStack(spacing: 5) {
-                            Text(document.title)
-                                .font(.system(size: 11, weight: .medium, design: .rounded))
-                                .lineLimit(1)
-                            Text("\(document.chunkCount)")
-                                .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-                                .foregroundStyle(.secondary)
-
-                            Button {
-                                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
-                                    appViewModel.removeIndexedDocument(document)
-                                }
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Togli «\(document.title)» dall'indice")
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Color.institutional.opacity(0.09))
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color.institutional.opacity(0.22), lineWidth: 1))
-                        .accessibilityElement(children: .contain)
-                        .accessibilityLabel("\(document.title), \(Plural.it(document.chunkCount, "frammento indicizzato", "frammenti indicizzati"))")
-                    }
-                }
-                .padding(.horizontal, 1)
-            }
-            .frame(height: 28)
-        }
-    }
-    // MARK: - Impostazioni Accessibilità & API
-    private func accessibilityAndApiSettingsView() -> some View {
+    private func accessibilitySettingsView() -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "accessibility.fill")
                     .foregroundColor(Color.institutional)
                     .font(.title3)
-                Text("Accessibilità DSA & Configurazione")
+                Text("Accessibilità DSA & Licenza")
                     .font(.headline)
                     .bold()
             }

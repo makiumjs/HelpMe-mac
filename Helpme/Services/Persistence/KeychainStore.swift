@@ -3,7 +3,9 @@ import Security
 public enum KeychainStore {
 
     public enum Key: String {
-        case geminiApiKey = "it.lemmly.helpme.gemini-api-key"
+        /// Non si scrive piu': resta solo per cancellare la chiave lasciata
+        /// nel portachiavi dalle versioni che parlavano con un modello in rete.
+        case legacyApiKey = "it.lemmly.helpme.gemini-api-key"
         case adminPasswordHash = "it.lemmly.helpme.admin-password"
     }
 

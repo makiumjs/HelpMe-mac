@@ -44,7 +44,7 @@ public struct WelcomeView: View {
             }
             VStack(alignment: .leading, spacing: 7) {
                 Label("I dati degli alunni restano su questo dispositivo.", systemImage: "lock.fill")
-                Label("Verso l'IA vengono inviati solo dati anonimizzati: nome e diagnosi non escono dal Mac.", systemImage: "eye.slash.fill")
+                Label("L'app non si collega a Internet: il sistema non gliene dà il permesso.", systemImage: "wifi.slash")
             }
             .font(.system(size: 11.5))
             .foregroundStyle(.secondary)

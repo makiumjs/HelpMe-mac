@@ -1,6 +1,5 @@
 import Foundation
 import PDFKit
-import NaturalLanguage
 
 #if os(macOS)
 import AppKit
@@ -145,112 +144,5 @@ public nonisolated final class DocumentIndexer: Sendable {
         throw NSError(domain: "DocumentIndexer", code: 422, userInfo: [
             NSLocalizedDescriptionKey: "Impossibile riconoscere la codifica di \(url.lastPathComponent)."
         ])
-    }
-
-    // MARK: - Suddivisione in frammenti
-    public func chunkText(text: String, title: String, chunkSize: Int = 500, overlap: Int = 80) -> [DocumentChunk] {
-        let cleanText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanText.isEmpty else { return [] }
-
-        var chunks: [DocumentChunk] = []
-        var startIndex = cleanText.startIndex
-
-        while startIndex < cleanText.endIndex {
-            let hardEnd = cleanText.index(startIndex, offsetBy: chunkSize, limitedBy: cleanText.endIndex) ?? cleanText.endIndex
-            let endIndex = Self.sentenceAwareEnd(in: cleanText, from: startIndex, upTo: hardEnd)
-
-            let chunkString = String(cleanText[startIndex..<endIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
-            if !chunkString.isEmpty {
-                chunks.append(DocumentChunk(
-                    documentTitle: title,
-                    text: chunkString,
-                    embedding: DocumentIndexer.embedding(for: chunkString)
-                ))
-            }
-
-            if endIndex >= cleanText.endIndex { break }
-
-            let step = max(1, cleanText.distance(from: startIndex, to: endIndex) - overlap)
-            startIndex = cleanText.index(startIndex, offsetBy: step, limitedBy: cleanText.endIndex) ?? cleanText.endIndex
-        }
-
-        return chunks
-    }
-    private static func sentenceAwareEnd(in text: String, from start: String.Index, upTo hardEnd: String.Index) -> String.Index {
-        guard hardEnd < text.endIndex else { return hardEnd }
-
-        let span = text.distance(from: start, to: hardEnd)
-        let minimumAcceptable = text.index(start, offsetBy: (span * 3) / 4, limitedBy: text.endIndex) ?? start
-
-        let terminators: Set<Character> = [".", "!", "?", "\n"]
-        var cursor = hardEnd
-        while cursor > minimumAcceptable {
-            let previous = text.index(before: cursor)
-            if terminators.contains(text[previous]) { return cursor }
-            cursor = previous
-        }
-        return hardEnd
-    }
-
-    // MARK: - Vettorizzazione
-    private static let italianEmbedding: NLEmbedding? = {
-        NLEmbedding.wordEmbedding(for: .italian) ?? NLEmbedding.wordEmbedding(for: .english)
-    }()
-
-    public static var embeddingDimension: Int {
-        italianEmbedding?.dimension ?? fallbackDimension
-    }
-    private static let fallbackDimension = 128
-    public static func embedding(for text: String) -> [Float] {
-        let words = tokenize(text)
-        guard !words.isEmpty else { return [] }
-
-        guard let model = italianEmbedding else {
-            return deterministicFallback(words: words)
-        }
-
-        let dimension = model.dimension
-        var accumulator = [Double](repeating: 0, count: dimension)
-        var matches = 0
-
-        for word in words {
-            guard let vector = model.vector(for: word) else { continue }
-            for i in 0..<dimension { accumulator[i] += vector[i] }
-            matches += 1
-        }
-        guard matches > 0 else { return deterministicFallback(words: words) }
-
-        var result = accumulator.map { Float($0 / Double(matches)) }
-        normalize(&result)
-        return result
-    }
-
-    private static func tokenize(_ text: String) -> [String] {
-        text.lowercased()
-            .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { $0.count > 1 }
-    }
-    static func deterministicFallback(words: [String], dimension: Int = fallbackDimension) -> [Float] {
-        var vector = [Float](repeating: 0, count: dimension)
-        for word in words {
-            let index = Int(stableHash(word) % UInt64(dimension))
-            vector[index] += Float(word.count)
-        }
-        normalize(&vector)
-        return vector
-    }
-    static func stableHash(_ string: String) -> UInt64 {
-        var hash: UInt64 = 0xcbf29ce484222325
-        for byte in string.utf8 {
-            hash ^= UInt64(byte)
-            hash = hash &* 0x100000001b3
-        }
-        return hash
-    }
-
-    private static func normalize(_ vector: inout [Float]) {
-        let norm = sqrt(vector.reduce(0) { $0 + $1 * $1 })
-        guard norm > 0 else { return }
-        for i in vector.indices { vector[i] /= norm }
     }
 }

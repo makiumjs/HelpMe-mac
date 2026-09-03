@@ -129,7 +129,6 @@ final class MindmapComposerTests: XCTestCase {
             for: StudentProfile.self, GloLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let vm = AppViewModel(modelContext: ModelContext(container))
-        vm.systemModelStatus = .appleIntelligenceOff
         let alunno = StudentProfile(name: "Andrea Pirlo", classInfo: "1ITA")
         vm.addStudent(alunno)
 

@@ -5,16 +5,17 @@ Trasforma un testo curricolare nel materiale didattico personalizzato che
 serve a un alunno con DSA o ADHD, secondo il D.I. 182/2020.
 
 Progetto Xcode (`Helpme.xcodeproj`), SwiftUI, macOS 14+ / iPadOS 17+.
-**465 test.**
+**398 test.**
 
 ## Cosa fa
 
-**Per il docente** — genera sette formati di materiale (verifica
+**Per il docente** — compone sette formati di materiale (verifica
 equipollente, formulario, scheda PDP, mappa concettuale, glossario,
-spiegazione semplificata, quiz di autoverifica), con un indice documentale
-che l'IA può consultare: si importano PDF, Word, EPUB, RTF e testo.
-L'esportazione produce un documento Word con l'intestazione istituzionale,
-le tabelle e la griglia di valutazione vere.
+spiegazione semplificata, quiz di autoverifica) a partire dal testo che il
+docente incolla e dalla scheda dell'alunno. Si importano PDF, Word, EPUB, RTF
+e testo: il documento finisce nell'editor, dove si legge e si corregge prima
+di generare. L'esportazione produce un documento Word con l'intestazione
+istituzionale, le tabelle e la griglia di valutazione vere.
 
 **Per lo studente** — lettura ad alta voce con evidenziazione karaoke,
 righello di lettura, sillabazione a colori alternati, font Lexend e
@@ -24,15 +25,20 @@ timer Focus propone pause attive e tiene i traguardi.
 
 ## Le quattro regole che reggono il progetto
 
-**I dati dei minori restano sul dispositivo.** L'app tratta dati personali
-e sanitari di minori con disabilità. Verso il cloud esce solo la forma
-pseudonimizzata: nome e riferimenti diagnostici non lasciano il Mac, e il
-nome rientra soltanto in locale nella risposta. `StudentPseudonymizer` è
-quel confine per la scheda; `SourceTextScreening` sorveglia il testo che il
-docente incolla e i frammenti indicizzati, che verso il cloud escono com'è —
-lì si avvisa e non si filtra, perché scartare una frase dal testo di partenza
-mutilerebbe la verifica da trasformare. `PrivacyTests` presidia — se un cambiamento fa fallire
-quei test non è un test da aggiustare, è una fuga da fermare.
+**L'app non può collegarsi a Internet.** Non è una promessa: è un permesso
+che il pacchetto non ha. HelpMe gira in App Sandbox senza
+`com.apple.security.network.client`, quindi è il sistema operativo a
+rifiutare qualunque connessione, non il nostro codice a rinunciarci. Chi
+compra può verificarlo da sé sull'app che ha in mano:
+
+```bash
+codesign -d --entitlements :- /Applications/HelpMe.app
+```
+
+Se in quell'elenco non compare `network.client`, quell'app non parla con
+nessuno. Nel sorgente non c'è un solo `URLSession`. I dati personali e
+sanitari dei minori non hanno modo di uscire dal Mac, e `StudentPseudonymizer`
+resta a tenere i riferimenti diagnostici fuori dai documenti prodotti.
 
 **Lo studente non deve vedere le risposte.** Il materiale che gli arriva —
 a schermo, letto ad alta voce o stampato — passa da `StudyTextPresenter`,
@@ -40,10 +46,11 @@ che toglie i marcatori della risposta esatta. Nel documento Word la chiave
 di correzione finisce in coda, dopo un'interruzione di pagina: il docente
 ce l'ha e gli basta non stampare l'ultima pagina.
 
-**La chiave API la mette solo l'amministratore.** Nessun docente deve
-doverla inserire: il pannello è protetto da una password amministratore
-(PBKDF2, nessun segreto nel sorgente). Protegge dalle modifiche accidentali,
-non da chi è amministratore della macchina — non è spacciato per di più.
+**La licenza la mette solo l'amministratore.** Nessun docente deve poter
+sostituire il codice della scuola: il pannello è protetto da una password
+amministratore (PBKDF2, nessun segreto nel sorgente). Protegge dalle modifiche
+accidentali, non da chi è amministratore della macchina — non è spacciato
+per di più.
 
 **Una licenza scaduta ferma la generazione, mai la lettura.** Il materiale
 già prodotto è dello studente che lo sta usando: nessuna questione
@@ -63,17 +70,18 @@ xcodebuild -project Helpme.xcodeproj -scheme Helpme -destination 'platform=macOS
 Per l'interfaccia conviene comunque Xcode: le anteprime SwiftUI e
 l'ispettore di accessibilità, su un'app per studenti con DSA, servono.
 
-## L'IA è un accessorio, non il motore
+## Come si compone il materiale
 
 L'app è un compilatore di documenti didattici: contenuto del docente +
 profilo dell'alunno + cataloghi normativi → materiale accessibile ed export
-ufficiale. Su 9.500 righe di sorgente, l'IA ne occupa 500. Lettore, karaoke,
-sillabazione, mappa navigabile, quiz interattivo, export Word, indice
-documentale e registro non la toccano.
+ufficiale. Nessun modello linguistico, in rete o sul dispositivo, entra in
+questo percorso.
 
-Un formato dichiara in `localComposition` come si produce senza modello:
-`.always` (basta la scheda dell'alunno), `.fromStructuredText` (serve un
-testo con una struttura riconoscibile), `.none` (per ora serve un modello).
+Un formato dichiara in `localComposition` da dove nasce: `.always` (basta la
+scheda dell'alunno), `.fromStructuredText` (serve un testo con una struttura
+riconoscibile), `.fromAnyText` (si estrae da qualunque testo),
+`.builtByTeacher` (non si ricava da un testo: lo scrive il docente in un
+editor dedicato).
 
 La **Verifica Equipollente** è `.fromStructuredText`: `ExamParser` riconosce
 parti, quesiti numerati, punteggi e durata nella verifica della classe, e
@@ -89,16 +97,15 @@ Il **Glossario** è `.fromAnyText`: `GlossaryExtractor` trova i termini
 tecnici con l'analizzatore grammaticale di sistema, li pesa per frequenza,
 terminazione e rarità nel vocabolario italiano, e per ciascuno ripesca la
 frase in cui compare. La definizione e l'analogia le scrive il docente:
-dipendono da quello che l'alunno sa già. Chi sceglie un motore a mano torna
-a farsele scrivere.
+dipendono da quello che l'alunno sa già.
 
-La **Spiegazione Semplificata** è il formato dove l'IA vince davvero, e
-l'app lo dice invece di fingere. Senza modello fa due cose oneste: rende il
-testo leggibile senza cambiare una parola — una frase per riga, elenchi al
-posto delle enumerazioni annunciate — e misura dov'è difficile con l'indice
-**Gulpease**, la formula tarata sull'italiano, segnalando frasi lunghe,
-subordinate annidate, forme passive e parole rare. Riscrivere le frasi resta
-al docente, e il documento lo scrive in fondo.
+La **Spiegazione Semplificata** è il formato dove l'app dichiara il proprio
+limite invece di fingere. Fa due cose oneste: rende il testo leggibile senza
+cambiare una parola — una frase per riga, elenchi al posto delle enumerazioni
+annunciate — e misura dov'è difficile con l'indice **Gulpease**, la formula
+tarata sull'italiano, segnalando frasi lunghe, subordinate annidate, forme
+passive e parole rare. Riscrivere le frasi resta al docente, perché richiede
+di sapere quali parole quell'alunno ha già; il documento lo scrive in fondo.
 
 `SimplificationWorkbenchModal` è il passo successivo: mostra **solo** le
 frasi che pesano, con l'originale sopra e una casella sotto, e l'indice si
@@ -127,11 +134,11 @@ aspetta — è l'inverso esatto di `QuizParser`, e un test verifica che
 scrivere e rileggere restituisca le stesse domande. Riaprendo l'editor si
 ritrova il quiz che c'è, per correggerlo invece di riscriverlo.
 
-Il primo formato portato fuori dall'IA è la **Scheda Sintesi PDP**, e non per risparmiare: il
-documento riepiloga misure deliberate dal Consiglio di Classe e finisce nel
-fascicolo dell'alunno, quindi il suo valore sta nel riportare *esattamente*
-le parole della normativa — cosa che un modello, parafrasandole un po'
-diverse a ogni generazione, peggiorava senza aggiungere niente.
+La **Scheda Sintesi PDP** è `.always`: riepiloga misure deliberate dal
+Consiglio di Classe e finisce nel fascicolo dell'alunno, quindi il suo valore
+sta nel riportare *esattamente* le parole della normativa — ed è il motivo per
+cui fu il primo formato tolto a un modello, che parafrasandole un po' diverse
+a ogni generazione le peggiorava senza aggiungere niente.
 `MeasureCatalog` tiene le diciture di L. 170/2010, D.M. 5669/2011 e
 D.I. 182/2020, e le misure vengono archiviate sotto la voce che la norma
 assegna loro, non sotto quella in cui il docente le aveva annotate.
@@ -139,12 +146,27 @@ assegna loro, non sotto quella in cui il docente le aveva annotate.
 **Le diciture del catalogo vanno riviste da un docente di sostegno prima
 della vendita:** sono responsabilità professionale sua, non del software.
 
-## Motore IA (dove serve)
+## Perché non c'è l'IA
 
-Usa il modello integrato nel Mac (Apple Intelligence) quando c'è — nessuna
-chiave, nessun dato fuori — e ricade su Google Gemini altrimenti. La scelta
-è automatica per formato: i documenti lunghi e strutturati vanno al cloud,
-il resto sta bene al modello locale. Il docente può forzarla.
+C'era, e la si è tolta. Non per ideologia: le misure dicevano che per sei
+formati su sette la composizione è **migliore** di un modello, non un
+ripiego. Un compositore che dispone i quesiti scelti dal docente non può
+rispondere alle domande al posto dello studente, non sbaglia un calcolo di
+cento volte e non si inventa una griglia da 110 punti — sono i tre guasti
+misurati sulla verifica equipollente generata da un modello.
+
+Il settimo, la spiegazione semplificata, è il solo dove un modello faceva
+qualcosa che l'app non sa fare: riscrivere le parole. Quel pezzo di lavoro
+oggi torna al docente, misurato e guidato frase per frase.
+
+Restano fuori anche le conseguenze: nessuna chiave API da amministrare,
+nessun costo a consumo, nessun fornitore terzo nel trattamento di dati
+sanitari di minori, nessuna DPIA da rifare quando il fornitore cambia i
+termini. Su una rete scolastica, un'app che non chiede la rete è anche
+un'app che non si rompe quando la rete non c'è.
+
+Il codice del motore non è stato riscritto ma rimosso in un'unica modifica:
+sta nella storia di git e torna con un `revert` se la scuola cambia idea.
 
 ## Distribuzione e licenze
 

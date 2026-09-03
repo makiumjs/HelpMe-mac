@@ -171,10 +171,4 @@ final class MindmapParserTests: XCTestCase {
         XCTAssertFalse(titles.contains { $0.contains("[") },
                        "Le caselle di spunta non devono diventare nodi: \(titles)")
     }
-
-    func testConceptMapPromptStillDescribesTheParsedFormat() {
-        let prompt = DidacticFormat.conceptMap.systemPromptTemplate
-        XCTAssertTrue(prompt.contains("::"), "Il prompt deve chiedere il separatore che il parser legge")
-        XCTAssertTrue(prompt.contains("DUE spazi"), "Il prompt deve fissare il passo di rientro")
-    }
 }

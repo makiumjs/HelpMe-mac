@@ -22,7 +22,7 @@ nonisolated public enum SourceTextCheck {
     public static func instructionExplanation(for text: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let quoted = trimmed.count > 60 ? String(trimmed.prefix(60)) + "…" : trimmed
-        return "«\(quoted)» sembra una richiesta all'IA, non una lezione. "
+        return "«\(quoted)» sembra una richiesta, non una lezione. "
              + "In questo riquadro va il testo curricolare da adattare: incollalo, "
              + "oppure premi «Importa» e il documento ci finisce da solo."
     }

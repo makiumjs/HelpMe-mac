@@ -135,5 +135,16 @@ echo "Verifica finale, come la farebbe il Mac di un collega:"
 spctl -a -vvv -t install "$APP"
 
 echo
+echo "Permessi del pacchetto (e' quello che la scuola puo' controllare da se'):"
+codesign -d --entitlements :- "$APP" 2>/dev/null | plutil -p - | sed 's/^/    /'
+if codesign -d --entitlements :- "$APP" 2>/dev/null | grep -q "network.client"; then
+    echo
+    rosso "Questo pacchetto puo' aprire connessioni di rete."
+    rosso "HelpMe e' venduta come app che non parla con nessuno: non consegnarlo."
+    exit 1
+fi
+verde "Nessun permesso di rete: il sistema operativo impedisce qualunque connessione."
+
+echo
 verde "Fatto: $DMG"
 echo "Questo file si puo' consegnare. Al primo avvio macOS non mostrera' avvisi."

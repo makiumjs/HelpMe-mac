@@ -2,8 +2,12 @@ import XCTest
 import SwiftData
 @testable import Helpme
 
-/// I dati che escono dal dispositivo verso Google Gemini riguardano minori
-/// con disabilità: questi test presidiano il confine.
+/// I documenti prodotti finiscono nel fascicolo dell'alunno e sotto gli occhi
+/// di tutto il Consiglio di Classe: i riferimenti diagnostici non devono
+/// entrarci. Questi test presidiano quel confine.
+///
+/// Che i dati non escano dal Mac non e' piu' compito di un filtro: lo
+/// impedisce la sandbox, e lo presidia `OfflineGuaranteeTests`.
 @MainActor
 final class PrivacyTests: XCTestCase {
 
@@ -15,56 +19,6 @@ final class PrivacyTests: XCTestCase {
             interest: "Meccanica Agraria e Trattori",
             notes: "DSA (dislessia e discalculia) certificata. Ottima comprensione per immagini e schemi pratici. Lavora bene in coppia."
         )
-    }
-
-    func testPromptDoesNotContainStudentName() {
-        let prompt = StudentPseudonymizer.promptProfile(for: makeStudent())
-        XCTAssertFalse(prompt.contains("Marco"), "il nome non deve uscire dal dispositivo")
-        XCTAssertFalse(prompt.contains("Rossi"))
-        XCTAssertTrue(prompt.contains(StudentPseudonymizer.placeholder))
-    }
-
-    func testPromptDoesNotContainDiagnosis() {
-        let prompt = StudentPseudonymizer.promptProfile(for: makeStudent()).lowercased()
-        for term in ["dislessia", "discalculia", "dsa", "certificata"] {
-            XCTAssertFalse(prompt.contains(term), "termine clinico trapelato: \(term)")
-        }
-    }
-
-    func testPromptKeepsDidacticObservations() {
-        let prompt = StudentPseudonymizer.promptProfile(for: makeStudent())
-        XCTAssertTrue(prompt.contains("Ottima comprensione per immagini e schemi pratici"),
-                      "le osservazioni didattiche servono e non identificano nessuno")
-        XCTAssertTrue(prompt.contains("Lavora bene in coppia"))
-        XCTAssertTrue(prompt.contains("Meccanica Agraria e Trattori"))
-    }
-
-    func testClassIsGeneralizedWithoutSection() {
-        XCTAssertEqual(StudentPseudonymizer.generalizeClass("3ª A Agrario"), "3º anno, indirizzo Agrario")
-        XCTAssertEqual(StudentPseudonymizer.generalizeClass("5ª B"), "5º anno di scuola secondaria di II grado")
-        XCTAssertEqual(StudentPseudonymizer.generalizeClass(""), "scuola secondaria di II grado")
-    }
-
-    func testIdentityIsRestoredLocally() {
-        let cloudAnswer = "La verifica è calibrata su \(StudentPseudonymizer.placeholder), che potrà usare il formulario."
-        let restored = StudentPseudonymizer.restoreIdentity(in: cloudAnswer, name: "Marco Rossi")
-        XCTAssertEqual(restored, "La verifica è calibrata su Marco Rossi, che potrà usare il formulario.")
-        XCTAssertFalse(restored.contains(StudentPseudonymizer.placeholder))
-    }
-
-    /// Controllo di fondo sul prompt completo, non solo sul blocco profilo.
-    func testFullPromptIsFreeOfIdentifiers() throws {
-        let context = ModelContext(PersistenceController(inMemory: true).container)
-        let viewModel = AppViewModel(modelContext: context)
-        let student = makeStudent()
-        viewModel.addStudent(student)
-        viewModel.sourceText = "Descrivi il ciclo Otto a quattro tempi."
-
-        let prompt = viewModel.buildPrompt(for: student)
-
-        XCTAssertFalse(prompt.contains("Marco Rossi"))
-        XCTAssertFalse(prompt.lowercased().contains("dislessia"))
-        XCTAssertTrue(prompt.contains("ciclo Otto"), "il contenuto didattico deve esserci")
     }
 
     // MARK: - Riferimenti normativi spezzati dalla punteggiatura
@@ -132,14 +86,5 @@ final class PrivacyTests: XCTestCase {
         )
         XCTAssertTrue(filtered.contains("Ottima comprensione per immagini e schemi pratici"))
         XCTAssertTrue(filtered.contains("Lavora bene in coppia"))
-    }
-
-    func testApiKeyIsNotStoredInUserDefaults() {
-        let defaults = UserDefaults.standard.dictionaryRepresentation()
-        for (key, value) in defaults {
-            guard let string = value as? String, string.count > 20 else { continue }
-            XCTAssertFalse(key.lowercased().contains("gemini"),
-                           "la API key non deve finire nei preferences: \(key)")
-        }
     }
 }
