@@ -87,7 +87,9 @@ public struct MeasuresChecklistModal: View {
                             .foregroundStyle(.tertiary)
                     }
                 }
+                #if os(macOS)
                 .toggleStyle(.checkbox)
+                #endif
             }
         }
     }
