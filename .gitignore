@@ -1,6 +1,7 @@
 # Build e artefatti Xcode
 build/
 .build/
+export_test/
 DerivedData/
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
