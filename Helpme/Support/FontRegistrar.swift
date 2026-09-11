@@ -3,7 +3,7 @@ import CoreText
 import os
 enum FontRegistrar {
 
-    private static let logger = Logger(subsystem: "it.lemmly.helpme", category: "fonts")
+    private static let logger = Logger(subsystem: "it.helpme.app", category: "fonts")
     private static let bundledFonts: [(file: String, ext: String)] = [
         ("Lexend-Variable", "ttf"),
         ("OpenDyslexic-Regular", "otf"),

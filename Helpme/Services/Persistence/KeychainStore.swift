@@ -6,7 +6,7 @@ public enum KeychainStore {
         /// Non si scrive piu': resta solo per cancellare la chiave lasciata
         /// nel portachiavi dalle versioni che parlavano con un modello in rete.
         case legacyApiKey = "it.lemmly.helpme.gemini-api-key"
-        case adminPasswordHash = "it.lemmly.helpme.admin-password"
+        case adminPasswordHash = "it.helpme.app.admin-password"
     }
 
     @discardableResult

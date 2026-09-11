@@ -2,9 +2,9 @@ import Foundation
 public enum SettingsStore {
 
     private enum Key {
-        static let accessibility = "it.lemmly.helpme.accessibility-settings"
-        static let lastFormat = "it.lemmly.helpme.last-didactic-format"
-        static let licenseToken = "it.lemmly.helpme.license-token"
+        static let accessibility = "it.helpme.app.accessibility-settings"
+        static let lastFormat = "it.helpme.app.last-didactic-format"
+        static let licenseToken = "it.helpme.app.license-token"
     }
 
     private static let defaults = UserDefaults.standard
