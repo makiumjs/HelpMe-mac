@@ -1,0 +1,31 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Logo" },
+    { "id": "page-2", "name": "Direzioni scartate" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 620, "h": 1180, "title": "Logo HelpMe", "page": "page-1" },
+    { "file": "Righello.dc.html", "x": 0, "y": 0, "w": 600, "h": 780, "title": "B · Il righello", "page": "page-2" },
+    { "file": "Mano.dc.html", "x": 700, "y": 0, "w": 600, "h": 780, "title": "C · La mano alzata", "page": "page-2" },
+    { "file": "Trasformazione.dc.html", "x": 1400, "y": 0, "w": 600, "h": 780, "title": "D · La trasformazione", "page": "page-2" }
+  ],
+  "annotations": [
+    {
+      "id": "scelto",
+      "x": 700,
+      "y": 0,
+      "w": 420,
+      "page": "page-1",
+      "text": "Scelto il 31 agosto 2026, fra quattro direzioni.\nRegge a 16 pixel, dove le altre tre cedono, ed e' l'unica che porta il nome dentro il segno.\nLe tre scartate restano nella pagina accanto: servono la prossima volta che si discute il marchio."
+    },
+    {
+      "id": "scartate",
+      "x": 0,
+      "y": -170,
+      "w": 620,
+      "page": "page-2",
+      "text": "Non scelte, tenute per memoria.\nOgnuna esplorava un asse diverso: lo strumento (B), l'alunno (C), la promessa del prodotto (D).\nOgnuna ha il suo compromesso scritto sotto, com'era quando si e' deciso."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}

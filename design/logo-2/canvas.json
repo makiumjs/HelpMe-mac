@@ -1,0 +1,25 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 620, "h": 900, "title": "E \u00b7 Il corrimano" },
+    { "file": "Sostegno.dc.html", "x": 720, "y": 0, "w": 620, "h": 900, "title": "F \u00b7 Il sostegno" },
+    { "file": "ChiaveDiVolta.dc.html", "x": 1440, "y": 0, "w": 620, "h": 900, "title": "G \u00b7 La chiave di volta" },
+    { "file": "Parentesi.dc.html", "x": 2160, "y": 0, "w": 620, "h": 900, "title": "H \u00b7 Le parentesi" }
+  ],
+  "annotations": [
+    {
+      "id": "secondo-giro",
+      "x": 0,
+      "y": -210,
+      "w": 620,
+      "text": "Secondo giro, 1 settembre 2026.\n\nLe quattro di prima erano bocciate su quattro assi: la lettera del nome, lo strumento, l\u2019alunno, la promessa del prodotto. Queste stanno su assi che non erano ancora stati toccati \u2014 il principio (E), il mestiere (F), il ruolo dentro il gruppo (G), il documento (H).\n\nColori presi dal codice: #1E4620 e #4ADE80."
+    },
+    {
+      "id": "cosa-serve",
+      "x": 720,
+      "y": -210,
+      "w": 620,
+      "text": "Se nessuna convince, la cosa pi\u00f9 utile \u00e8 sapere CHE COSA non andava nelle prime quattro: erano troppo fredde? troppo astratte? il verde? Con quella riga il terzo giro parte gi\u00e0 vicino, invece di ricominciare da capo."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

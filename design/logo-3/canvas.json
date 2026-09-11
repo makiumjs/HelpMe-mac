@@ -1,0 +1,32 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 620, "h": 900, "title": "I \u00b7 Al centro" },
+    { "file": "PostoNelCerchio.dc.html", "x": 720, "y": 0, "w": 620, "h": 900, "title": "J \u00b7 Il posto nel cerchio" },
+    { "file": "CerchioAperto.dc.html", "x": 1440, "y": 0, "w": 620, "h": 900, "title": "K \u00b7 Il cerchio aperto" },
+    { "file": "StessoTetto.dc.html", "x": 2160, "y": 0, "w": 620, "h": 900, "title": "L \u00b7 Sotto lo stesso tetto" }
+  ],
+  "annotations": [
+    {
+      "id": "inclusione",
+      "x": 0,
+      "y": -230,
+      "w": 620,
+      "text": "Terzo giro, sull\u2019inclusione.\n\nQuesto spiega perch\u00e9 le otto precedenti sono cadute: parlavano tutte di SOSTEGNO, cio\u00e8 di aiutare qualcuno. L\u2019inclusione dice un\u2019altra cosa \u2014 che a cambiare \u00e8 l\u2019ambiente, perch\u00e9 ci stiano tutti. Le parentesi, anzi, dicevano il contrario: mettono da parte."
+    },
+    {
+      "id": "misure",
+      "x": 720,
+      "y": -230,
+      "w": 620,
+      "text": "Ogni segno \u00e8 stato disegnato e guardato a 128, 64, 48, 32 e 16 pixel prima di finire qui. Due direzioni sono state buttate proprio l\u00ec: le composizioni di tanti pezzi uguali si impastano in piccolo, le sagome singole e piene sopravvivono. Il \u00abcompromesso\u00bb di ciascuna dice che cosa \u00e8 successo davvero, non che cosa temevo."
+    },
+    {
+      "id": "evitate",
+      "x": 1440,
+      "y": -230,
+      "w": 620,
+      "text": "Due strade escluse di proposito.\n\nIl grafico a torta \u2014 la fetta staccata dice \u00abil pezzo che manca\u00bb, ma sembra un foglio di calcolo.\n\nE qualunque cosa somigli a una tessera di puzzle: in ambito disabilit\u00e0 quel simbolo \u00e8 controverso e su un prodotto per una scuola non si usa."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}
