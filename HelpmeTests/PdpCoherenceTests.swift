@@ -266,4 +266,17 @@ final class PdpCoherenceTests: XCTestCase {
 
         XCTAssertTrue(notices.contains { $0.id == "pdp.suggest.foreign-dictionary" })
     }
+
+    func testDifferenziatoWarnsAgainstEquipollente() {
+        let exam = ExamParser.parse("1. Risolvi il problema.")
+        let notices = PdpCoherenceChecker.check(
+            exam: exam,
+            studentName: "Matteo",
+            compensatory: [],
+            dispensatory: [],
+            programType: .differenziato
+        )
+
+        XCTAssertTrue(notices.contains { $0.id == "pdp.differenziato.no-equipollente" })
+    }
 }

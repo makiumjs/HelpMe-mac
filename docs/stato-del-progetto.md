@@ -17,7 +17,7 @@ decisione presa bene si rimette in discussione da capo.
 | Cartella | `~/Progetti/HelpMe/Helpme` | `~/Progetti/HelpMe-Windows` |
 | Remote | `makiumjs/HelpMe-mac` | `makiumjs/HelpMe-windows` |
 | Stack | Swift 6, SwiftUI, SwiftData | C# .NET 8, WinUI 3 |
-| Test | 426 (411 XCTest + 15 Swift Testing) | 458 |
+| Test | 432 (413 XCTest + 19 Swift Testing) | 464 |
 | Sorgente | ~9.500 righe | — |
 | Motore generativo | **rimosso** | **ancora presente** |
 | Permesso di rete | **assente** | presente |
@@ -244,6 +244,12 @@ sarebbe arrivato in produzione con l'aria di un rilievo normativo.
 7. **Suggeritore proattivo delle misure da banco.** Regole esperte in
    `PdpCoherenceChecker` che consigliano linea del tempo (storia), dizionario
    digitale (lingue) e gestione dell'affaticamento grafico.
+
+### Completato l'11 settembre 2026 (Allineamento Windows commit `8b953cd`)
+
+1. **Formato Didattico Autonomo: `DidacticFormat.gloReport`.** Integrazione della Relazione di Monitoraggio GLO tra i formati didattici componibili localmente e richiamabili direttamente dal diario GLO nel foglio di lavoro.
+2. **Vincolo Normativo per Percorso Differenziato (D.I. 182/2020 e D.Lgs. 62/2017).** Gli alunni con programmazione differenziata non possono svolgere prove equipollenti: il formato viene escluso dai selezionabili, bloccato in generazione con notifica esplicita e segnalato da `PdpCoherenceChecker`.
+3. **Suite di Test.** Nuovi test di coerenza, esportazione DOCX per relazione GLO e test di regressione allineati (totale 432 test superati su macOS).
 
 ---
 

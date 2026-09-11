@@ -83,7 +83,7 @@ public struct TeacherSidebarView: View {
                     .font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundColor(Color.institutional)
                 VStack(spacing: 2) {
-                    ForEach(DidacticFormat.allCases, id: \.self) { format in
+                    ForEach(appViewModel.availableFormats, id: \.self) { format in
                         let isSelected = appViewModel.selectedFormat == format
 
                         Button {
@@ -240,6 +240,7 @@ public struct TeacherSidebarView: View {
         case .glossary: return "character.book.closed.fill"
         case .clearExplanation: return "text.badge.checkmark"
         case .interactiveQuiz: return "questionmark.bubble.fill"
+        case .gloReport: return "chart.bar.doc.horizontal.fill"
         }
     }
 }

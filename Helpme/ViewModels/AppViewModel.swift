@@ -18,6 +18,7 @@ public final class AppViewModel {
             guard selectedStudent !== oldValue else { return }
             if let previous = oldValue { store(into: previous) }
             restoreWork(of: selectedStudent)
+            ensureValidFormatForCurrentStudent()
         }
     }
     public func rememberWork() {
@@ -92,11 +93,16 @@ public final class AppViewModel {
                  + "nella colonna a sinistra."
         case .interactiveQuiz:
             return "Il quiz si scrive: aprilo con «Scrivi il quiz» nella colonna a sinistra."
+        case .gloReport:
+            return "Verifica periodica o finale per il GLO (D.I. 182/2020). Riassume le osservazioni del diario di bordo, monitora i tempi aggiuntivi e formula la valutazione per le 4 dimensioni."
         }
     }
 
     public var canGenerate: Bool {
         guard LicenseGate.canGenerate(licenseState) else { return false }
+        if selectedStudent?.programType == .differenziato && selectedFormat == .equipollenteExam {
+            return false
+        }
         switch selectedFormat.localComposition {
         case .always:
             return true
@@ -107,13 +113,41 @@ public final class AppViewModel {
         }
     }
 
+    /// I formati didattici proposti per l'alunno selezionato.
+    /// Nel percorso differenziato (D.I. 182/2020 art. 11, D.Lgs. 62/2017 art. 20 c. 5),
+    /// la verifica equipollente non si applica ed è esclusa dai formati proposti.
+    public var availableFormats: [DidacticFormat] {
+        if selectedStudent?.programType == .differenziato {
+            return DidacticFormat.allCases.filter { $0 != .equipollenteExam }
+        }
+        return DidacticFormat.allCases
+    }
+
+    public func ensureValidFormatForCurrentStudent() {
+        if selectedStudent?.programType == .differenziato && selectedFormat == .equipollenteExam {
+            selectedFormat = .pdpSummary
+        }
+    }
+
     // MARK: - Editor
     static let editorFillLimit = 50_000
     public var sourceText: String = ""
 
     // MARK: - Coerenza PDP
     public var pdpCoherenceNotices: [PdpCoherenceChecker.Notice] {
-        guard let student = selectedStudent, selectedFormat == .equipollenteExam else { return [] }
+        guard let student = selectedStudent else { return [] }
+        if student.programType == .differenziato && selectedFormat == .equipollenteExam {
+            return [
+                .init(
+                    id: "pdp.differenziato.no-equipollente",
+                    severity: .warning,
+                    title: "Verifica equipollente non applicabile a percorso differenziato",
+                    message: "Per \(student.name) è formalizzato un Percorso Differenziato (D.I. 182/2020 art. 11). Ai sensi dell'art. 20 c. 5 del D.Lgs. 62/2017, le prove devono essere coerenti con il PEI e non possono essere equipollenti (riservate a percorso ordinario o per obiettivi minimi valido per il diploma).",
+                    legalReference: "D.I. 182/2020 art. 11 — D.Lgs. 62/2017 art. 20 c. 5"
+                )
+            ]
+        }
+        guard selectedFormat == .equipollenteExam else { return [] }
         guard !sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [] }
         let exam = ExamParser.parse(sourceText)
         guard !exam.isEmpty else { return [] }
@@ -121,7 +155,8 @@ public final class AppViewModel {
             exam: exam,
             studentName: student.name,
             compensatory: student.compensatoryMeasures,
-            dispensatory: student.dispensatoryMeasures
+            dispensatory: student.dispensatoryMeasures,
+            programType: student.programType
         )
     }
 
@@ -210,6 +245,7 @@ public final class AppViewModel {
         change()
         persist()
         reloadFromStore()
+        ensureValidFormatForCurrentStudent()
     }
 
     // MARK: - Registro GLO
@@ -317,6 +353,11 @@ public final class AppViewModel {
     public func generateMaterial() async {
         guard let student = selectedStudent else {
             errorMessage = "Seleziona prima una scheda alunno."
+            return
+        }
+
+        if student.programType == .differenziato && selectedFormat == .equipollenteExam {
+            errorMessage = "Per gli alunni con PEI differenziato (D.I. 182/2020 art. 11, D.Lgs. 62/2017 art. 20 c. 5) non è prevista la verifica equipollente."
             return
         }
 
@@ -465,8 +506,30 @@ public final class AppViewModel {
                 dispensatory: student.dispensatoryMeasures
             ))
             statusMessage = "Scheda compilata dalle misure registrate per \(student.name)."
+        case .gloReport:
+            generatedContent = generateGloReport()
+            statusMessage = "Relazione di monitoraggio GLO generata per \(student.name)."
         default:
             errorMessage = "Questo formato non si compone da qui."
         }
+    }
+
+    public func generateGloReport(schoolYear: String = "2025/2026") -> String {
+        guard let student = selectedStudent else { return "" }
+        let entries = gloEntries.filter { $0.studentId == student.id }
+        let year = schoolInfo.schoolYear.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? schoolYear
+            : schoolInfo.schoolYear
+        let input = GloReportComposer.Input(
+            instituteName: schoolInfo.instituteName,
+            studentName: student.name,
+            classInfo: student.classInfo,
+            programTitle: student.programType.localizedTitle,
+            compensatory: student.compensatoryMeasures,
+            dispensatory: student.dispensatoryMeasures,
+            entries: entries,
+            schoolYear: year
+        )
+        return GloReportComposer.compose(input)
     }
 }

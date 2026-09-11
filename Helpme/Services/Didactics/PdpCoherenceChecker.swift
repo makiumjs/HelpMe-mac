@@ -42,9 +42,21 @@ public nonisolated enum PdpCoherenceChecker {
         exam: ParsedExam,
         studentName: String,
         compensatory: [String],
-        dispensatory: [String]
+        dispensatory: [String],
+        programType: ProgramType? = nil
     ) -> [Notice] {
         var notices: [Notice] = []
+
+        // 0. Percorso Differenziato: la verifica equipollente non si applica
+        if programType == .differenziato {
+            notices.append(Notice(
+                id: "pdp.differenziato.no-equipollente",
+                severity: .warning,
+                title: "Verifica equipollente non applicabile a percorso differenziato",
+                message: "Per \(studentName) è formalizzato un Percorso Differenziato (D.I. 182/2020 art. 11). Ai sensi dell'art. 20 c. 5 del D.Lgs. 62/2017, le prove devono essere coerenti con il PEI e non possono essere equipollenti (riservate a percorso ordinario o per obiettivi minimi valido per il diploma).",
+                legalReference: "D.I. 182/2020 art. 11 — D.Lgs. 62/2017 art. 20 c. 5"
+            ))
+        }
 
         let dispMeasures = dispensatory.compactMap { MeasureCatalog.matching($0) }
         let compMeasures = compensatory.compactMap { MeasureCatalog.matching($0) }

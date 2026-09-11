@@ -264,4 +264,43 @@ final class DocxExportTests: XCTestCase {
         XCTAssertFalse(segments[0].italic)
         XCTAssertTrue(segments[0].text.contains("nome_utente"))
     }
+
+    func testEsportaRelazioneGloInDocxValido() throws {
+        let scuola = SchoolInfo(instituteName: "I.I.S. Della Lucia", teacherName: "Prof. Cassarino")
+        let alunno = StudentProfile(name: "Marco Rossi", classInfo: "4A", programType: .differenziato)
+        let entries = [
+            GloLogEntry(
+                studentId: alunno.id,
+                studentName: alunno.name,
+                topic: "Attività di laboratorio",
+                formatUsed: "Spiegazione semplificata",
+                dimension: .autonomy,
+                autonomyLevel: "Autonomo con guida",
+                notes: "Compito completato con successo",
+                minutesAllowed: 60,
+                minutesUsed: 45
+            )
+        ]
+
+        let reportMarkdown = GloReportComposer.compose(.init(
+            instituteName: scuola.instituteName,
+            studentName: alunno.name,
+            classInfo: alunno.classInfo,
+            programTitle: alunno.programType.localizedTitle,
+            compensatory: ["comp.calcolatrice"],
+            dispensatory: [],
+            entries: entries
+        ))
+
+        let datiDocx = DocxExportService().makeDocxData(
+            schoolInfo: scuola,
+            student: alunno,
+            format: .gloReport,
+            title: "Relazione di Monitoraggio GLO",
+            content: reportMarkdown
+        )
+
+        XCTAssertGreaterThan(datiDocx.count, 0)
+        XCTAssertEqual(Array(datiDocx.prefix(2)), [0x50, 0x4B])
+    }
 }

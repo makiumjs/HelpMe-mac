@@ -198,4 +198,79 @@ struct WindowsFindingsTests {
             #expect(!termini.contains(parola), "«\(parola)» non è un termine da spiegare: \(termini)")
         }
     }
+
+    // MARK: - Nuovi allineamenti da Windows (10 settembre 2026)
+
+    @MainActor
+    @Test func availableFormatsEscludeEquipollentePerDifferenziato() throws {
+        let container = try ModelContainer(
+            for: StudentProfile.self, GloLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let vm = AppViewModel(modelContext: ModelContext(container))
+        let studentDiff = StudentProfile(name: "Luca", classInfo: "4A", programType: .differenziato)
+        vm.addStudent(studentDiff)
+        vm.selectedStudent = studentDiff
+
+        #expect(!vm.availableFormats.contains(.equipollenteExam))
+        #expect(vm.availableFormats.contains(.gloReport))
+        #expect(vm.availableFormats.contains(.pdpSummary))
+
+        let studentMinimi = StudentProfile(name: "Marco", classInfo: "4A", programType: .minimi)
+        vm.addStudent(studentMinimi)
+        vm.selectedStudent = studentMinimi
+
+        #expect(vm.availableFormats.contains(.equipollenteExam))
+    }
+
+    @MainActor
+    @Test func cambioAlunnoDifferenziatoResettaEquipollente() throws {
+        let container = try ModelContainer(
+            for: StudentProfile.self, GloLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let vm = AppViewModel(modelContext: ModelContext(container))
+        let studentMinimi = StudentProfile(name: "Marco", classInfo: "4A", programType: .minimi)
+        vm.addStudent(studentMinimi)
+        vm.selectedStudent = studentMinimi
+        vm.selectedFormat = .equipollenteExam
+
+        let studentDiff = StudentProfile(name: "Luca", classInfo: "4A", programType: .differenziato)
+        vm.addStudent(studentDiff)
+        vm.selectedStudent = studentDiff
+
+        #expect(vm.selectedFormat != .equipollenteExam)
+        #expect(vm.selectedFormat == .pdpSummary)
+    }
+
+    @MainActor
+    @Test func canGenerateEFalsoPerEquipollenteSuDifferenziato() throws {
+        let container = try ModelContainer(
+            for: StudentProfile.self, GloLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let vm = AppViewModel(modelContext: ModelContext(container))
+        let studentDiff = StudentProfile(name: "Luca", classInfo: "4A", programType: .differenziato)
+        vm.addStudent(studentDiff)
+        vm.selectedStudent = studentDiff
+
+        vm.selectedFormat = .equipollenteExam
+
+        #expect(!vm.canGenerate)
+    }
+
+    @MainActor
+    @Test func generateMaterialComponeRelazioneGlo() async throws {
+        let container = try ModelContainer(
+            for: StudentProfile.self, GloLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let vm = AppViewModel(modelContext: ModelContext(container))
+        let student = StudentProfile(name: "Elena Rossi", classInfo: "1A", programType: .minimi)
+        vm.addStudent(student)
+        vm.selectedStudent = student
+        vm.selectedFormat = .gloReport
+
+        await vm.generateMaterial()
+
+        #expect(vm.generatedContent.contains("Elena Rossi"))
+        #expect(vm.generatedContent.contains("D.I. 182/2020"))
+        #expect(vm.generatedContent.contains("Avvertenza deontologica"))
+    }
 }

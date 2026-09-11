@@ -222,8 +222,15 @@ public struct GloDiaryModalView: View {
                         .foregroundColor(.green)
                 }
                 Spacer()
+                Button(action: composeMonitoringReport) {
+                    Label("Componi nel Foglio di Lavoro", systemImage: "doc.badge.arrow.up.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.institutional)
+                .disabled(teacherViewModel.appViewModel.selectedStudent == nil)
+
                 Button(action: copyMonitoringReport) {
-                    Label("Copia Relazione Monitoraggio GLO", systemImage: "doc.on.doc")
+                    Label("Copia Relazione", systemImage: "doc.on.doc")
                 }
                 .buttonStyle(.bordered)
                 .disabled(teacherViewModel.appViewModel.selectedStudent == nil)
@@ -235,22 +242,20 @@ public struct GloDiaryModalView: View {
             }
         }
         .padding(24)
-        .frame(width: 740, height: 580)
+        .frame(width: 760, height: 580)
+    }
+
+    private func composeMonitoringReport() {
+        guard let student = teacherViewModel.appViewModel.selectedStudent else { return }
+        teacherViewModel.appViewModel.selectedFormat = .gloReport
+        teacherViewModel.appViewModel.generatedContent = teacherViewModel.appViewModel.generateGloReport()
+        teacherViewModel.appViewModel.statusMessage = "Relazione di monitoraggio GLO per \(student.name) composta con successo."
+        dismiss()
     }
 
     private func copyMonitoringReport() {
-        guard let student = teacherViewModel.appViewModel.selectedStudent else { return }
-        let entries = teacherViewModel.appViewModel.gloEntries.filter { $0.studentId == student.id }
-        let report = GloReportComposer.compose(.init(
-            instituteName: teacherViewModel.appViewModel.schoolInfo.instituteName,
-            studentName: student.name,
-            classInfo: student.classInfo,
-            programTitle: student.programType.localizedTitle,
-            compensatory: student.compensatoryMeasures,
-            dispensatory: student.dispensatoryMeasures,
-            entries: entries,
-            schoolYear: teacherViewModel.appViewModel.schoolInfo.schoolYear
-        ))
+        guard teacherViewModel.appViewModel.selectedStudent != nil else { return }
+        let report = teacherViewModel.appViewModel.generateGloReport()
         Clipboard.copy(report)
         copyConfirmation = "Relazione monitoraggio copiata negli appunti!"
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {

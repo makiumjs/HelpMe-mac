@@ -8,6 +8,7 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
     case glossary = "glossary"
     case clearExplanation = "clear_explanation"
     case interactiveQuiz = "interactive_quiz"
+    case gloReport = "glo_report"
     
     public var title: String {
         switch self {
@@ -18,6 +19,7 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
         case .glossary: return "Glossario con Analogie"
         case .clearExplanation: return "Spiegazione Semplificata"
         case .interactiveQuiz: return "Quiz di Autoverifica"
+        case .gloReport: return "Relazione di Monitoraggio GLO"
         }
     }
     
@@ -30,6 +32,7 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
         case .glossary: return "Termini tecnici con spiegazione ed esempi vicini agli interessi"
         case .clearExplanation: return "Frasi brevi, lessico chiaro, formattazione anti-affaticamento"
         case .interactiveQuiz: return "Domande a scelta multipla con feedback immediato"
+        case .gloReport: return "Verifica periodica o finale, 4 dimensioni del PEI e clausola deontologica vincolante"
         }
     }
     
@@ -46,7 +49,7 @@ public enum DidacticFormat: String, CaseIterable, Codable, Sendable {
     /// possono dedurre da un testo li scrive il docente negli editor dedicati.
     public var localComposition: LocalComposition {
         switch self {
-        case .pdpSummary:       return .always
+        case .pdpSummary, .gloReport: return .always
         case .equipollenteExam: return .fromStructuredText
         case .glossary, .deskCheatSheet, .clearExplanation: return .fromAnyText
         case .conceptMap, .interactiveQuiz: return .builtByTeacher
