@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-public enum PeiDimension: String, Codable, CaseIterable, Sendable {
+public nonisolated enum PeiDimension: String, Codable, CaseIterable, Sendable {
     case cognitive = "Dimensione Cognitiva, Neuropsicologica e dell'Apprendimento"
     case autonomy = "Dimensione dell'Autonomia e dell'Orientamento"
     case communication = "Dimensione della Comunicazione e dei Linguaggi"

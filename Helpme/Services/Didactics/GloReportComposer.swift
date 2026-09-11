@@ -10,7 +10,7 @@ import Foundation
 /// indebite o automatiche sulla revoca delle misure.
 public nonisolated enum GloReportComposer {
 
-    public struct Input: Sendable {
+    public struct Input {
         public let instituteName: String
         public let studentName: String
         public let classInfo: String
